@@ -7,6 +7,7 @@ import {
   Home as HomeIcon,
   Inbox,
   LogOut,
+  Mail,
   Menu,
   Network,
   PencilRuler,
@@ -31,6 +32,7 @@ import AdminInbox from './pages/AdminInbox'
 import AdminSubmissionDetail from './pages/AdminSubmissionDetail'
 import AdminDirectory from './pages/AdminDirectory'
 import AdminUsers from './pages/AdminUsers'
+import AdminEmail from './pages/AdminEmail'
 import Reports from './pages/Reports'
 import ReportView from './pages/ReportView'
 
@@ -104,6 +106,7 @@ export default function App() {
               <NavLink to="/admin/inbox"><Inbox size={18} /> Inbox <Badge n={counts.submissions + counts.feedback} /></NavLink>
               <NavLink to="/admin/directory"><Settings2 size={18} /> Edit directory</NavLink>
               <NavLink to="/admin/users"><Users size={18} /> Users & roles</NavLink>
+              <NavLink to="/admin/email"><Mail size={18} /> E-mail</NavLink>
             </>
           )}
         </nav>
@@ -136,6 +139,7 @@ export default function App() {
           <Route path="/admin/submissions/:id" element={<RequireRole roles={['admin']}><AdminSubmissionDetail /></RequireRole>} />
           <Route path="/admin/directory" element={<RequireRole roles={['admin']}><AdminDirectory /></RequireRole>} />
           <Route path="/admin/users" element={<RequireRole roles={['admin']}><AdminUsers /></RequireRole>} />
+          <Route path="/admin/email" element={<RequireRole roles={['admin']}><AdminEmail /></RequireRole>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

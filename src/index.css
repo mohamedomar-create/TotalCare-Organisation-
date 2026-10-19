@@ -535,3 +535,13 @@ th { background: var(--surface-2); font-weight: 600; font-size: 0.88rem; }
   .ob-panel { position: fixed; top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 70vh; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg); z-index: 50; }
   .ob-cell-add { opacity: 1; }
 }
+
+/* ---------- E-mail settings ---------- */
+.toggle-row { flex-direction: row; align-items: flex-start; gap: 12px; font-weight: 400; padding: 10px 0; border-bottom: 1px solid var(--border); margin: 0; }
+.toggle-row input { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; accent-color: var(--primary); }
+.toggle-row > span { display: flex; flex-direction: column; gap: 2px; }
+.page > section.card { margin-bottom: 14px; }
+.success-text { color: var(--success); font-weight: 600; }
+.email-log { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.email-log li { display: flex; gap: 10px; align-items: flex-start; }
+.email-log li svg { margin-top: 3px; flex-shrink: 0; }

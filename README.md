@@ -16,6 +16,7 @@ An internal web app for TotalCare Egypt:
 - **Admin inbox**: every submission and feedback note, with unread badges, search, review status and private notes.
 - **Org chart and directory** showing departments, reporting lines and contacts.
 - **Reports for management**: anonymised summaries with charts, published by the admin.
+- **E-mail**: the admin gets an e-mail for every submission and every feedback note, plus a daily or weekly summary of all results. Management gets an e-mail when a report is published. Configure this on the admin **E-mail** page.
 
 Inspiration: Typeform (one topic per screen), Culture Amp and Officevibe (pulse ratings, eNPS, pick-lists), and the TotalCare Org Board (drag-and-drop org chart).
 
@@ -49,6 +50,16 @@ Staff are told this on the submission form. The rules are enforced by Postgres r
 Only `@totalcareegypt.com` addresses can sign up. The database enforces this in `handle_new_user`. To change the domain, edit it there and in `VITE_ALLOWED_DOMAIN`.
 
 The questions and pick-lists live in `src/lib/survey.ts`. The org-chart departments, levels and ready-made roles live in `src/lib/orgBoard.ts`. Edit those files to change them.
+
+## E-mail
+
+E-mails are sent by the `notify` Edge Function (`supabase/functions/notify`) through [Resend](https://resend.com). Database triggers call it when something is submitted, and `pg_cron` calls it every morning for the summary.
+
+1. Run `supabase/migrations/0003_email_notifications.sql`, then create the two Vault secrets listed at the bottom of that file.
+2. Deploy the function: `supabase functions deploy notify --no-verify-jwt`.
+3. In Resend, verify your domain (for example `totalcareegypt.com`) and create an API key.
+4. In Supabase, go to **Edge Functions → Secrets** and add `RESEND_API_KEY`, plus `EMAIL_FROM` (for example `TotalCare Organisation <noreply@totalcareegypt.com>`).
+5. Open **Admin → E-mail** in the app and press **Send test e-mail**.
 
 ## Deploying
 
