@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth'
 import { createSubmission, useMySubmissions } from '../lib/submissions'
 import { WIZARD_STEPS } from '../lib/survey'
 import PrivacyNotice from '../components/PrivacyNotice'
+import { asBoard } from '../lib/orgBoard'
 
 export default function MyVision() {
   const { session } = useAuth()
@@ -49,7 +50,7 @@ export default function MyVision() {
                       {s.status === 'submitted' && s.submitted_at
                         ? `Sent ${new Date(s.submitted_at).toLocaleString()}`
                         : `Last saved ${new Date(s.updated_at).toLocaleString()}`}
-                      {' · '}{s.structure.nodes.length} boxes drawn · {s.challenge_tags.length} challenges
+                      {' · '}{asBoard(s.structure).roles.length} roles on org chart · {s.challenge_tags.length} challenges
                     </div>
                   </div>
                   <span className="pill">{s.status === 'submitted' ? 'View' : 'Continue'}</span>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useDirectory } from '../lib/useDirectory'
-import { initials } from '../components/diagram/shapes'
+import { initials } from '../lib/initials'
 
 export default function Directory() {
   const { departments, people, loading, error } = useDirectory()

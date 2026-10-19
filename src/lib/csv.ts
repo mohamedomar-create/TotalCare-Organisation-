@@ -1,5 +1,6 @@
 import { RATING_DIMENSIONS } from './survey'
 import type { Profile, Submission } from './types'
+import { asBoard } from './orgBoard'
 
 function cell(v: unknown) {
   const s = v === null || v === undefined ? '' : String(v)
@@ -12,7 +13,7 @@ export function downloadCsv(subs: Submission[], profiles: Profile[], deptName: M
     'Name', 'Email', 'Department', 'Level', 'Status', 'Submitted at',
     ...RATING_DIMENSIONS.map((d) => d.label),
     'Responsibilities', 'Role notes', 'Challenges (ranked)', 'Challenge example',
-    'Idea 1', 'Idea 2', 'Idea 3', 'Change tomorrow', 'eNPS (0-10)', 'Other comments', 'Boxes drawn',
+    'Idea 1', 'Idea 2', 'Idea 3', 'Change tomorrow', 'eNPS (0-10)', 'Other comments', 'Roles on org chart',
   ]
   const rows = subs.map((s) => {
     const p = who.get(s.author_id)
@@ -20,7 +21,7 @@ export function downloadCsv(subs: Submission[], profiles: Profile[], deptName: M
       p?.full_name, p?.email, s.department_id ? deptName.get(s.department_id) : '', s.role_level, s.status, s.submitted_at,
       ...RATING_DIMENSIONS.map((d) => s.ratings?.[d.key] ?? ''),
       s.responsibility_tags.join('; '), s.responsibilities, s.challenge_tags.join('; '), s.challenges,
-      s.ideas?.[0], s.ideas?.[1], s.ideas?.[2], s.quick_win, s.enps, s.suggestions, s.structure.nodes.length,
+      s.ideas?.[0], s.ideas?.[1], s.ideas?.[2], s.quick_win, s.enps, s.suggestions, asBoard(s.structure).roles.length,
     ]
   })
   const csv = [header, ...rows].map((r) => r.map(cell).join(',')).join('\n')

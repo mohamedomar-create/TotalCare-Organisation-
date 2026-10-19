@@ -10,11 +10,13 @@ import {
   RATING_DIMENSIONS,
   RESPONSIBILITY_OPTIONS,
   ROLE_LEVELS,
+  ARABIC,
   WIZARD_STEPS,
 } from '../lib/survey'
 import Chips from '../components/Chips'
 import RatingRow from '../components/RatingRow'
-import DiagramEditor from '../components/diagram/DiagramEditor'
+import OrgBoardEditor from '../components/board/OrgBoardEditor'
+import { asBoard } from '../lib/orgBoard'
 import SubmissionSummary from '../components/SubmissionSummary'
 import PrivacyNotice from '../components/PrivacyNotice'
 
@@ -23,7 +25,7 @@ const LAST = WIZARD_STEPS.length - 1
 export default function VisionWizard() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { departments, people } = useDirectory()
+  const { departments } = useDirectory()
   const [sub, setSub] = useState<Submission | null>(null)
   const [step, setStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -128,6 +130,7 @@ export default function VisionWizard() {
     )
   }
 
+  const board = asBoard(sub.structure)
   const answeredRatings = RATING_DIMENSIONS.filter((d) => sub.ratings?.[d.key]).length
   const progress = Math.round((step / LAST) * 100)
 
@@ -154,88 +157,82 @@ export default function VisionWizard() {
       </div>
 
       <div className="wizard-step">
-        <p className="step-kicker">Step {step + 1} of {WIZARD_STEPS.length} · {WIZARD_STEPS[step].hint}</p>
+        <p className="step-kicker">Step {step + 1} of {WIZARD_STEPS.length} · {WIZARD_STEPS[step].hint} · <span lang="ar">{WIZARD_STEPS[step].ar}</span></p>
 
         {step === 0 && (
           <>
-            <h1>Let’s start with you</h1>
+            <h1>Let’s start with you <span className="ar-title" lang="ar">نبدأ بيك</span></h1>
             <PrivacyNotice />
-            <p className="field-label">Which department are you in?</p>
+            <p className="field-label">Your department <span className="ar-inline" lang="ar">إدارتك</span></p>
             <div className="chips">
               {departments.map((d) => (
                 <button key={d.id} type="button" className={`chip ${sub.department_id === d.id ? 'on' : ''}`} onClick={() => change({ department_id: d.id })} style={sub.department_id === d.id ? { background: d.color, borderColor: d.color } : undefined}>
                   {d.name}
                 </button>
               ))}
-              <button type="button" className={`chip ${sub.department_id === null ? 'on' : ''}`} onClick={() => change({ department_id: null })}>Prefer not to say</button>
+              <button type="button" className={`chip ${sub.department_id === null ? 'on' : ''}`} onClick={() => change({ department_id: null })}>
+                <span className="chip-text">Prefer not to say<span className="chip-ar" lang="ar">أفضّل ألا أقول</span></span>
+              </button>
             </div>
-            <p className="field-label">Your level</p>
-            <div className="chips">
-              {ROLE_LEVELS.map((l) => (
-                <button key={l} type="button" className={`chip ${sub.role_level === l ? 'on' : ''}`} onClick={() => change({ role_level: sub.role_level === l ? '' : l })}>{l}</button>
-              ))}
-            </div>
+            <p className="field-label">Your level <span className="ar-inline" lang="ar">مستواك الوظيفي</span></p>
+            <Chips options={ROLE_LEVELS} selected={sub.role_level ? [sub.role_level] : []} onChange={(v) => change({ role_level: v[v.length - 1] ?? '' })} translate={ARABIC} />
           </>
         )}
 
         {step === 1 && (
           <>
-            <h1>How do things feel today?</h1>
-            <p className="lead">Tap the face that fits best. {answeredRatings} of {RATING_DIMENSIONS.length} answered.</p>
+            <h1>How is work going? <span className="ar-title" lang="ar">الشغل ماشي إزاي؟</span></h1>
+            <p className="lead">Tap one face for each line. {answeredRatings} of {RATING_DIMENSIONS.length} done.</p>
             {RATING_DIMENSIONS.map((d) => (
-              <RatingRow key={d.key} question={d.question} value={sub.ratings?.[d.key]} onChange={(v) => change({ ratings: { ...sub.ratings, [d.key]: v } })} />
+              <RatingRow key={d.key} question={d.question} ar={d.ar} value={sub.ratings?.[d.key]} onChange={(v) => change({ ratings: { ...sub.ratings, [d.key]: v } })} />
             ))}
           </>
         )}
 
         {step === 2 && (
           <>
-            <h1>What does your role involve?</h1>
-            <p className="lead">Tap everything you’re responsible for today. Add your own if it’s missing.</p>
-            <Chips options={RESPONSIBILITY_OPTIONS} selected={sub.responsibility_tags} onChange={(v) => change({ responsibility_tags: v })} allowCustom />
+            <h1>What do you do? <span className="ar-title" lang="ar">بتعمل إيه؟</span></h1>
+            <p className="lead">Tap everything that is part of your work. Add your own if it’s missing.</p>
+            <Chips options={RESPONSIBILITY_OPTIONS} selected={sub.responsibility_tags} onChange={(v) => change({ responsibility_tags: v })} allowCustom translate={ARABIC} />
             <label>
-              Anything unclear or overlapping in your role? <span className="muted">(optional)</span>
-              <textarea rows={3} placeholder="e.g. Both Sales and Operations approve client discounts…" value={sub.responsibilities} onChange={(e) => change({ responsibilities: e.target.value })} />
+              Anything in your job that is not clear, or done by two people? <span className="muted">(optional)</span>
+              <span className="ar-line" lang="ar" dir="rtl">في حاجة في شغلك مش واضحة أو بيعملها اتنين؟ (اختياري)</span>
+              <textarea rows={3} dir="auto" placeholder="e.g. Sales and Finance both follow up the same invoice…" value={sub.responsibilities} onChange={(e) => change({ responsibilities: e.target.value })} />
             </label>
           </>
         )}
 
         {step === 3 && (
           <>
-            <h1>What gets in the way?</h1>
-            <p className="lead">Pick up to {MAX_CHALLENGES}, <strong>most important first</strong> — the number shows the order.</p>
-            <Chips options={CHALLENGE_OPTIONS} selected={sub.challenge_tags} onChange={(v) => change({ challenge_tags: v })} max={MAX_CHALLENGES} ranked allowCustom />
+            <h1>What slows you down? <span className="ar-title" lang="ar">إيه اللي معطّلك؟</span></h1>
+            <p className="lead">Pick up to {MAX_CHALLENGES}. Tap the <strong>biggest problem first</strong> — the number shows the order.</p>
+            <Chips options={CHALLENGE_OPTIONS} selected={sub.challenge_tags} onChange={(v) => change({ challenge_tags: v })} max={MAX_CHALLENGES} ranked allowCustom translate={ARABIC} />
             <label>
-              Give an example <span className="muted">(optional)</span>
-              <textarea rows={3} placeholder="A real situation helps us understand the problem." value={sub.challenges} onChange={(e) => change({ challenges: e.target.value })} />
+              Give one real example <span className="muted">(optional)</span>
+              <span className="ar-line" lang="ar" dir="rtl">اكتب مثال حقيقي (اختياري)</span>
+              <textarea rows={3} dir="auto" placeholder="e.g. A hospital order waited 2 weeks for 4 signatures…" value={sub.challenges} onChange={(e) => change({ challenges: e.target.value })} />
             </label>
           </>
         )}
 
         {step === 4 && (
           <>
-            <h1>Draw the organisation you’d like to see</h1>
-            <p className="lead">Start from a template (or today’s org chart), then move, rename and connect boxes. Optional — skip if you prefer.</p>
-            <DiagramEditor
-              key={sub.id}
-              value={sub.structure}
-              onChange={(structure) => change({ structure })}
-              people={people}
-              departments={departments}
-              height="max(420px, calc(100vh - 420px))"
-            />
+            <h1>Build your org chart <span className="ar-title" lang="ar">ابنِ الهيكل التنظيمي</span></h1>
+            <p className="lead">Drag roles into the right department and level. Tap a box to change it. Optional — you can skip this step.</p>
+            <OrgBoardEditor key={sub.id} value={board} onChange={(structure) => change({ structure })} />
           </>
         )}
 
         {step === 5 && (
           <>
-            <h1>Your ideas</h1>
-            <p className="lead">Short and specific works best.</p>
+            <h1>Your ideas <span className="ar-title" lang="ar">أفكارك</span></h1>
+            <p className="lead">Short and clear is best. Arabic or English are both fine.</p>
             {[0, 1, 2].map((i) => (
               <label key={i}>
                 Idea {i + 1}{i > 0 && <span className="muted"> (optional)</span>}
                 <input
-                  placeholder={['e.g. One person approves discounts up to 10%', 'e.g. Weekly 15-minute team stand-up', 'e.g. Shared calendar for field visits'][i]}
+                  dir="auto"
+                  placeholder={['e.g. One person signs discounts up to 10%', 'e.g. Use Odoo for all orders, not WhatsApp', 'e.g. A loan device for every big hospital'][i]}
                   value={sub.ideas?.[i] ?? ''}
                   onChange={(e) => {
                     const ideas = [...(sub.ideas ?? []), '', '', ''].slice(0, 3)
@@ -246,27 +243,29 @@ export default function VisionWizard() {
               </label>
             ))}
             <label>
-              If you could change <strong>one thing tomorrow</strong>, what would it be?
-              <input value={sub.quick_win} onChange={(e) => change({ quick_win: e.target.value })} />
+              One thing to change tomorrow
+              <span className="ar-line" lang="ar" dir="rtl">حاجة واحدة تتغير من بكرة</span>
+              <input dir="auto" value={sub.quick_win} onChange={(e) => change({ quick_win: e.target.value })} />
             </label>
-            <p className="field-label">How likely are you to recommend TotalCare as a place to work?</p>
+            <p className="field-label">Would you tell a friend to work at TotalCare? <span className="ar-inline" lang="ar">تنصح صاحبك يشتغل في TotalCare؟</span></p>
             <div className="enps">
               {Array.from({ length: 11 }, (_, n) => (
                 <button key={n} type="button" className={`enps-btn ${sub.enps === n ? 'on' : ''} ${n <= 6 ? 'low' : n <= 8 ? 'mid' : 'high'}`} onClick={() => change({ enps: sub.enps === n ? null : n })}>{n}</button>
               ))}
             </div>
-            <div className="enps-legend muted small"><span>Not likely</span><span>Very likely</span></div>
+            <div className="enps-legend muted small"><span>0 = No · لا</span><span>10 = Yes, for sure · أكيد</span></div>
             <label>
-              Anything else the admin should know? <span className="muted">(optional)</span>
-              <textarea rows={3} value={sub.suggestions} onChange={(e) => change({ suggestions: e.target.value })} />
+              Anything else? <span className="muted">(optional)</span>
+              <span className="ar-line" lang="ar" dir="rtl">أي حاجة تانية؟ (اختياري)</span>
+              <textarea rows={3} dir="auto" value={sub.suggestions} onChange={(e) => change({ suggestions: e.target.value })} />
             </label>
           </>
         )}
 
         {step === LAST && (
           <>
-            <h1>{locked ? 'Your submission' : 'Review and send'}</h1>
-            {!locked && <p className="lead">Check your answers. Use “Edit” to go back to any step. Everything is sent to the admin when you submit.</p>}
+            <h1>{locked ? 'Your submission' : 'Check and send'} <span className="ar-title" lang="ar">{locked ? 'مشاركتك' : 'راجع وابعت'}</span></h1>
+            {!locked && <p className="lead">Check your answers. Tap “Edit” to change anything. When you press Send, everything goes to the admin.</p>}
             <SubmissionSummary sub={sub} departmentName={sub.department_id ? deptName.get(sub.department_id) : undefined} onEdit={locked ? undefined : go} />
           </>
         )}
@@ -277,9 +276,9 @@ export default function VisionWizard() {
           <button type="button" className="secondary" onClick={() => go(step - 1)} disabled={step === 0}><ArrowLeft size={16} /> Back</button>
           <button type="button" className="link danger" onClick={remove}><Trash2 size={14} /> Delete draft</button>
           {step < LAST ? (
-            <button type="button" onClick={() => go(step + 1)}>{step === 4 && sub.structure.nodes.length === 0 ? 'Skip' : 'Next'} <ArrowRight size={16} /></button>
+            <button type="button" onClick={() => go(step + 1)}>{step === 4 && board.roles.length === 0 ? 'Skip' : 'Next'} <ArrowRight size={16} /></button>
           ) : (
-            <button type="button" className="primary-lg" onClick={submit}><Send size={16} /> Submit to admin</button>
+            <button type="button" className="primary-lg" onClick={submit}><Send size={16} /> Send to admin · ابعت</button>
           )}
         </div>
       )}

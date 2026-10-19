@@ -1,15 +1,15 @@
 export default function PrivacyNotice() {
   return (
     <div className="notice">
-      <strong>Who can see what you write</strong>
+      <strong>Who sees your answers?</strong>
       <ul>
-        <li>Your name is attached to your submission and is visible <strong>only to the project admin</strong>.</li>
-        <li>
-          Management receives an <strong>anonymised summary</strong> — no names, and departments with very few
-          responses are grouped together so individuals can't be picked out.
-        </li>
-        <li>You can edit or delete a draft any time. Once submitted, it is locked.</li>
+        <li>Only the <strong>project admin</strong> sees your name.</li>
+        <li>Management sees a <strong>summary without names</strong>. Small teams are grouped so nobody can be identified.</li>
+        <li>You can change a draft any time. After you send it, it is locked.</li>
       </ul>
+      <p className="ar-line" lang="ar" dir="rtl">
+        اسمك يظهر لمسؤول المشروع فقط. الإدارة تشوف ملخص من غير أسماء. تقدر تعدّل المسودة في أي وقت، وبعد الإرسال مش هتتعدّل.
+      </p>
     </div>
   )
 }

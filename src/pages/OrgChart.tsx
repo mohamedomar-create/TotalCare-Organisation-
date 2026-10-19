@@ -3,7 +3,7 @@ import { Background, Controls, ReactFlow, type Edge, type Node } from '@xyflow/r
 import { useDirectory } from '../lib/useDirectory'
 import { layoutTree, NODE_W } from '../lib/layout'
 import type { Person } from '../lib/types'
-import { initials } from '../components/diagram/shapes'
+import { initials } from '../lib/initials'
 
 export default function OrgChart() {
   const { departments, people, loading, error } = useDirectory()

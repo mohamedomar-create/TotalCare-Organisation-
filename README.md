@@ -3,21 +3,21 @@
 An internal web app for TotalCare Egypt:
 
 - **Home**: shows each person their progress, with one button to start or continue.
-- **Step-by-step submission**, a full-screen wizard in 7 steps with autosave and a progress bar:
+- **Step-by-step submission**, a full-screen wizard in 7 steps with autosave and a progress bar. Everything is in simple English with Arabic underneath:
   1. About you: department and level, picked from buttons.
-  2. Quick pulse: 8 statements rated with one tap on a face scale.
-  3. Your role: pick responsibilities from a list, or add your own.
-  4. Challenges: pick and rank your top 5.
-  5. Draw your vision: a drawing canvas. Start from a template or today's org chart, then drag shapes (leader, department, team, role, person, sticky note, area), double-click to type, and connect boxes with "reports to" or "works with" lines. It has colours, auto-arrange, undo/redo and duplicate.
-  6. Ideas: your top 3 ideas, one quick win, and an eNPS score.
-  7. Review and send.
+  2. Quick check: 8 short statements rated with one tap on a face scale.
+  3. Your work: tap what you do (tenders, installation, EDA registration, Odoo and so on), or add your own.
+  4. Problems: pick and rank your top 5 (approvals, WhatsApp instead of a system, collections, customs and so on).
+  5. Org chart: a drag-and-drop board with departments as columns and levels as rows. Start from the suggested TotalCare structure, then drag ready-made roles between boxes, drop a role on the library to remove it, and tap a role to set its title, number of people, who it reports to and its duties.
+  6. Ideas: your top 3 ideas, one thing to change tomorrow, and an eNPS score.
+  7. Check and send.
 - **Send feedback**: a button on every page that sends a quick idea, problem, question or praise to the admin.
 - **Admin dashboard**: response rate, eNPS, average pulse scores, top challenges, a department filter and CSV export.
 - **Admin inbox**: every submission and feedback note, with unread badges, search, review status and private notes.
 - **Org chart and directory** showing departments, reporting lines and contacts.
 - **Reports for management**: anonymised summaries with charts, published by the admin.
 
-Inspiration: Typeform (one topic per screen), Culture Amp and Officevibe (pulse ratings, eNPS, pick-lists), Miro, Whimsical and Lucidchart (shape palette, templates, auto-layout), ChartHop (org chart).
+Inspiration: Typeform (one topic per screen), Culture Amp and Officevibe (pulse ratings, eNPS, pick-lists), and the TotalCare Org Board (drag-and-drop org chart).
 
 ## Who sees what (confidential model)
 
@@ -48,7 +48,7 @@ Staff are told this on the submission form. The rules are enforced by Postgres r
 
 Only `@totalcareegypt.com` addresses can sign up. The database enforces this in `handle_new_user`. To change the domain, edit it there and in `VITE_ALLOWED_DOMAIN`.
 
-The questions and pick-lists live in `src/lib/survey.ts`. Edit that file to change them.
+The questions and pick-lists live in `src/lib/survey.ts`. The org-chart departments, levels and ready-made roles live in `src/lib/orgBoard.ts`. Edit those files to change them.
 
 ## Deploying
 
@@ -56,4 +56,4 @@ The questions and pick-lists live in `src/lib/survey.ts`. Edit that file to chan
 
 ## Tech
 
-React + TypeScript (Vite), React Flow for the charts, and Supabase for auth (e-mail magic link), Postgres and row-level security.
+React + TypeScript (Vite), dnd-kit for drag and drop, React Flow for the read-only org chart, and Supabase for auth (e-mail magic link), Postgres and row-level security.

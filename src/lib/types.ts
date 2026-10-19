@@ -26,35 +26,8 @@ export interface Person {
   location: string
 }
 
-export type ShapeKind = 'leader' | 'department' | 'team' | 'role' | 'person' | 'note' | 'zone'
-export type LinkKind = 'reports' | 'collaborates'
 
-export interface VisionNode {
-  id: string
-  label: string
-  responsibilities: string
-  x: number
-  y: number
-  kind?: ShapeKind
-  color?: string
-  width?: number
-  height?: number
-}
-
-export interface VisionEdge {
-  id: string
-  source: string
-  target: string
-  kind?: LinkKind
-  label?: string
-  sourceHandle?: string
-  targetHandle?: string
-}
-
-export interface Structure {
-  nodes: VisionNode[]
-  edges: VisionEdge[]
-}
+import type { OrgBoard } from './orgBoard'
 
 export interface Submission {
   id: string
@@ -66,7 +39,7 @@ export interface Submission {
   responsibilities: string
   challenge_tags: string[]
   challenges: string
-  structure: Structure
+  structure: OrgBoard
   ideas: string[]
   quick_win: string
   suggestions: string
@@ -111,7 +84,7 @@ export interface Report {
   title: string
   summary: string
   stats: ReportStats
-  structures: Structure[]
+  structures: OrgBoard[]
   published: boolean
   published_at: string | null
   created_at: string

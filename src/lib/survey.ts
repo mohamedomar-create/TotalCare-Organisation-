@@ -1,71 +1,91 @@
-// Content for the step-by-step submission. Edit these lists to change the questions.
+// Content for the step-by-step submission, in simple English with Arabic.
+// Edit these lists to change the questions. Answers are stored by their English text.
 
-export const ROLE_LEVELS = ['Team member', 'Senior / specialist', 'Supervisor', 'Manager', 'Director / executive']
+type Pair = [en: string, ar: string]
+
+const toMap = (pairs: Pair[]) => Object.fromEntries(pairs) as Record<string, string>
+
+const LEVELS: Pair[] = [
+  ['Staff / technician', 'موظف / فني'],
+  ['Engineer / specialist / rep', 'مهندس / أخصائي / مندوب'],
+  ['Supervisor / team lead', 'مشرف / قائد فريق'],
+  ['Manager / head', 'مدير / رئيس قسم'],
+  ['Director / GM', 'مدير إدارة / مدير عام'],
+]
+export const ROLE_LEVELS = LEVELS.map(([en]) => en)
 
 export interface RatingDimension {
   key: string
   label: string
   question: string
+  ar: string
 }
 
 export const RATING_DIMENSIONS: RatingDimension[] = [
-  { key: 'clarity', label: 'Role clarity', question: 'I know exactly what is expected of me.' },
-  { key: 'structure', label: 'Structure', question: 'The current structure helps me do my job well.' },
-  { key: 'communication', label: 'Communication', question: 'Information reaches me on time.' },
-  { key: 'workload', label: 'Workload', question: 'My workload is manageable.' },
-  { key: 'tools', label: 'Tools & resources', question: 'I have the tools and resources I need.' },
-  { key: 'collaboration', label: 'Collaboration', question: 'Teams work well together across departments.' },
-  { key: 'leadership', label: 'Leadership support', question: 'I get the support I need from my manager.' },
-  { key: 'growth', label: 'Growth', question: 'I can see how to grow my career here.' },
+  { key: 'clarity', label: 'Clear job', question: 'I know exactly what my job is.', ar: 'أعرف شغلي بالظبط.' },
+  { key: 'structure', label: 'Clear manager', question: 'I know who my direct manager is.', ar: 'أعرف مين مديري المباشر.' },
+  { key: 'communication', label: 'Information', question: 'I get the information I need on time.', ar: 'المعلومات بتوصلي في وقتها.' },
+  { key: 'decisions', label: 'Fast decisions', question: 'Decisions and approvals are fast.', ar: 'القرارات والموافقات بتتاخد بسرعة.' },
+  { key: 'workload', label: 'Fair workload', question: 'My workload is fair.', ar: 'حجم الشغل عليّ مناسب.' },
+  { key: 'tools', label: 'Tools', question: 'I have the tools I need (car, laptop, Odoo, phone…).', ar: 'عندي الأدوات اللي محتاجها (عربية، لابتوب، Odoo، موبايل…).' },
+  { key: 'collaboration', label: 'Teamwork', question: 'Departments help each other.', ar: 'الإدارات بتساعد بعض.' },
+  { key: 'growth', label: 'Future', question: 'I can see a future for myself at TotalCare.', ar: 'شايف لنفسي مستقبل في TotalCare.' },
 ]
 
 export const RATING_SCALE = [
-  { value: 1, emoji: '😞', label: 'Strongly disagree' },
-  { value: 2, emoji: '🙁', label: 'Disagree' },
-  { value: 3, emoji: '😐', label: 'Neutral' },
-  { value: 4, emoji: '🙂', label: 'Agree' },
-  { value: 5, emoji: '😄', label: 'Strongly agree' },
+  { value: 1, emoji: '😞', label: 'No', ar: 'لا' },
+  { value: 2, emoji: '🙁', label: 'Not really', ar: 'مش أوي' },
+  { value: 3, emoji: '😐', label: 'Sometimes', ar: 'أحياناً' },
+  { value: 4, emoji: '🙂', label: 'Mostly', ar: 'غالباً' },
+  { value: 5, emoji: '😄', label: 'Yes', ar: 'أيوه' },
 ]
 
-export const RESPONSIBILITY_OPTIONS = [
-  'Serving clients / patients',
-  'Sales & new business',
-  'Account management',
-  'Scheduling & coordination',
-  'Field operations',
-  'Quality & compliance',
-  'Purchasing & suppliers',
-  'Inventory & logistics',
-  'Finance & billing',
-  'Payroll & HR admin',
-  'Hiring & onboarding',
-  'Training others',
-  'Reporting & data',
-  'IT & systems',
-  'Marketing & content',
-  'Managing a team',
-  'Approvals & sign-off',
-  'Customer complaints',
+const RESPONSIBILITIES: Pair[] = [
+  ['Visiting hospitals & clients', 'زيارة المستشفيات والعملاء'],
+  ['Tenders (UPA, MOH, universities)', 'المناقصات (الشراء الموحد، الصحة، الجامعات)'],
+  ['Selling & quotations', 'البيع وعروض الأسعار'],
+  ['Homecare patients', 'مرضى الرعاية المنزلية'],
+  ['Installing devices', 'تركيب الأجهزة'],
+  ['Maintenance & repairs', 'الصيانة والإصلاح'],
+  ['Training doctors & nurses', 'تدريب الأطباء والتمريض'],
+  ['Marketing & events', 'التسويق والفعاليات'],
+  ['Import & customs', 'الاستيراد والجمارك'],
+  ['EDA registration', 'تسجيل هيئة الدواء'],
+  ['Warehouse & stock', 'المخازن والمخزون'],
+  ['Delivery & drivers', 'التوصيل والسواقين'],
+  ['Invoices & collections', 'الفواتير والتحصيل'],
+  ['Accounting & tax', 'الحسابات والضرائب'],
+  ['Data entry in Odoo', 'إدخال البيانات على Odoo'],
+  ['HR, payroll & insurance', 'الموارد البشرية والمرتبات والتأمينات'],
+  ['Contracts & legal', 'العقود والشؤون القانونية'],
+  ['Quality & ISO', 'الجودة والأيزو'],
+  ['Managing a team', 'إدارة فريق'],
 ]
+export const RESPONSIBILITY_OPTIONS = RESPONSIBILITIES.map(([en]) => en)
 
-export const CHALLENGE_OPTIONS = [
-  'Unclear roles / overlap',
-  'Too many approvals',
-  'Slow decisions',
-  'Poor communication between teams',
-  'Information arrives late',
-  'Workload too high',
-  'Not enough staff',
-  'Missing tools or systems',
-  'Manual, repetitive work',
-  'Lack of training',
-  'Unclear priorities',
-  'Reporting to too many people',
-  'Little recognition',
-  'Limited career path',
-  'Customer issues not escalated',
-  'Meetings take too much time',
+const CHALLENGES: Pair[] = [
+  ['Not clear who decides', 'مش واضح مين صاحب القرار'],
+  ['Too many signatures / approvals', 'توقيعات وموافقات كتير'],
+  ['Same work done twice', 'نفس الشغل بيتعمل مرتين'],
+  ['Information comes late', 'المعلومة بتوصل متأخر'],
+  ['Work runs on WhatsApp, not a system', 'الشغل ماشي على الواتساب مش على سيستم'],
+  ['Odoo not used properly', 'Odoo مش مستخدم صح'],
+  ['Late payments & collections', 'تأخير التحصيل والمدفوعات'],
+  ['Customs & import delays', 'تأخير الجمارك والاستيراد'],
+  ['EDA registration delays', 'تأخير تسجيل هيئة الدواء'],
+  ['Stock not available on time', 'المخزون مش متاح في وقته'],
+  ['Too much travel / traffic', 'سفر ومشاوير ومواصلات كتير'],
+  ['Not enough people', 'عدد الأفراد قليل'],
+  ['Missing tools (car, laptop, phone)', 'أدوات ناقصة (عربية، لابتوب، موبايل)'],
+  ['Not enough training', 'تدريب مش كفاية'],
+  ['Departments don’t cooperate', 'الإدارات مش متعاونة'],
+  ['No clear career path', 'مفيش مسار وظيفي واضح'],
+  ['Effort not recognised', 'المجهود مش متقدّر'],
 ]
+export const CHALLENGE_OPTIONS = CHALLENGES.map(([en]) => en)
+
+// Arabic for any stored English answer.
+export const ARABIC: Record<string, string> = { ...toMap(LEVELS), ...toMap(RESPONSIBILITIES), ...toMap(CHALLENGES) }
 
 export const MAX_CHALLENGES = 5
 
@@ -73,15 +93,15 @@ export const FEEDBACK_CATEGORIES = [
   { value: 'idea', label: 'Idea', emoji: '💡' },
   { value: 'issue', label: 'Problem', emoji: '⚠️' },
   { value: 'question', label: 'Question', emoji: '❓' },
-  { value: 'praise', label: 'Praise', emoji: '👏' },
+  { value: 'praise', label: 'Thanks', emoji: '👏' },
 ] as const
 
 export const WIZARD_STEPS = [
-  { key: 'about', title: 'About you', hint: '30 seconds' },
-  { key: 'pulse', title: 'Quick pulse', hint: 'Tap a face for each' },
-  { key: 'role', title: 'Your role', hint: 'Pick what you do' },
-  { key: 'challenges', title: 'Challenges', hint: 'Pick up to 5' },
-  { key: 'vision', title: 'Draw your vision', hint: 'Use a template or shapes' },
-  { key: 'ideas', title: 'Ideas', hint: 'Your top suggestions' },
-  { key: 'review', title: 'Review & send', hint: 'Check and submit' },
+  { key: 'about', title: 'About you', ar: 'عنك', hint: '30 seconds' },
+  { key: 'pulse', title: 'Quick check', ar: 'تقييم سريع', hint: 'Tap a face' },
+  { key: 'role', title: 'Your work', ar: 'شغلك', hint: 'Tap what you do' },
+  { key: 'challenges', title: 'Problems', ar: 'المشاكل', hint: 'Pick up to 5' },
+  { key: 'vision', title: 'Org chart', ar: 'الهيكل التنظيمي', hint: 'Drag and drop' },
+  { key: 'ideas', title: 'Ideas', ar: 'أفكارك', hint: 'Your suggestions' },
+  { key: 'review', title: 'Send', ar: 'إرسال', hint: 'Check and send' },
 ] as const

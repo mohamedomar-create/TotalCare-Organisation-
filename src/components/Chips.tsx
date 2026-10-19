@@ -9,9 +9,10 @@ interface Props {
   ranked?: boolean
   allowCustom?: boolean
   disabled?: boolean
+  translate?: Record<string, string>
 }
 
-export default function Chips({ options, selected, onChange, max, ranked, allowCustom, disabled }: Props) {
+export default function Chips({ options, selected, onChange, max, ranked, allowCustom, disabled, translate }: Props) {
   const [custom, setCustom] = useState('')
   const all = [...options, ...selected.filter((s) => !options.includes(s))]
   const full = max !== undefined && selected.length >= max
@@ -45,7 +46,10 @@ export default function Chips({ options, selected, onChange, max, ranked, allowC
               aria-pressed={on}
             >
               {on && (ranked ? <span className="chip-rank">{index + 1}</span> : <Check size={14} />)}
-              {o}
+              <span className="chip-text">
+                {o}
+                {translate?.[o] && <span className="chip-ar" lang="ar">{translate[o]}</span>}
+              </span>
             </button>
           )
         })}
@@ -53,7 +57,7 @@ export default function Chips({ options, selected, onChange, max, ranked, allowC
       {allowCustom && !disabled && (
         <div className="chip-custom">
           <input
-            placeholder="Add your own…"
+            placeholder="Add your own… / أضف من عندك"
             value={custom}
             disabled={full}
             onChange={(e) => setCustom(e.target.value)}
@@ -71,7 +75,7 @@ export default function Chips({ options, selected, onChange, max, ranked, allowC
       )}
       {max !== undefined && (
         <p className="muted small">
-          {selected.length} of {max} selected{full ? ' — remove one to pick another' : ''}
+          {selected.length} of {max} selected{full ? ' — tap one to remove it' : ''}
         </p>
       )}
     </div>

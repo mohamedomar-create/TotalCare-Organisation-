@@ -1,4 +1,5 @@
-import type { Department, ReportStats, Structure, Submission } from './types'
+import type { Department, ReportStats, Submission } from './types'
+import { asBoard, type OrgBoard } from './orgBoard'
 import { enps, ratingAverages, tagCounts } from './analytics'
 
 // Departments with fewer submissions than this are merged into one group,
@@ -76,7 +77,7 @@ export function buildDraftReport(submissions: Submission[], departments: Departm
     ...sections,
   ].join('\n')
 
-  const structures: Structure[] = shuffle(submitted.map((s) => s.structure).filter((st) => st.nodes.length > 0))
+  const structures: OrgBoard[] = shuffle(submitted.map((s) => asBoard(s.structure)).filter((b) => b.roles.length > 0))
 
   return { summary, stats, structures }
 }

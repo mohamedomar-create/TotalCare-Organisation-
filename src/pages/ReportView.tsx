@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { Report } from '../lib/types'
-import DiagramEditor from '../components/diagram/DiagramEditor'
+import { OrgBoardView } from '../components/board/OrgBoardEditor'
 import BarList from '../components/BarList'
 
 export default function ReportView() {
@@ -84,14 +84,14 @@ export default function ReportView() {
 
       {report.structures.length > 0 && (
         <>
-          <h2>Structures proposed by staff ({report.structures.length})</h2>
+          <h2>Org charts proposed by staff ({report.structures.length})</h2>
           {report.structures.map((st, i) => (
-            <div key={st.nodes[0]?.id ?? i} className="card">
+            <div key={st.roles[0]?.id ?? i} className="card">
               <div className="row between">
                 <strong>Proposal {i + 1}</strong>
                 {editable && <button className="link danger" onClick={() => removeStructure(i)}>Remove from report</button>}
               </div>
-              <DiagramEditor value={st} readOnly height={320} />
+              <OrgBoardView board={st} />
             </div>
           ))}
         </>
