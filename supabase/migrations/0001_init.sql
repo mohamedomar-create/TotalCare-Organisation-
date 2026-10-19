@@ -70,9 +70,9 @@ create trigger profiles_guard_role
 
 alter table public.profiles enable row level security;
 create policy "read own profile or admin reads all" on public.profiles
-  for select using (id = auth.uid() or is_admin());
+  for select to authenticated using (id = auth.uid() or is_admin());
 create policy "update own profile or admin updates any" on public.profiles
-  for update using (id = auth.uid() or is_admin());
+  for update to authenticated using (id = auth.uid() or is_admin());
 
 -- ---------------------------------------------------------------------------
 -- Directory: departments and people (staff need not have an account)
@@ -130,7 +130,7 @@ create table public.submissions (
 
 create or replace function public.touch_submission()
 returns trigger
-language plpgsql
+language plpgsql set search_path = public
 as $$
 begin
   new.updated_at := now();
@@ -179,3 +179,11 @@ create policy "admin manages reports" on public.reports
   for all to authenticated using (is_admin()) with check (is_admin());
 create policy "management reads published reports" on public.reports
   for select to authenticated using (published and is_management());
+
+-- ---------------------------------------------------------------------------
+-- Function privileges: trigger functions are not callable through the API, and
+-- the role helpers only for signed-in users (they only reveal the caller's own role).
+-- ---------------------------------------------------------------------------
+revoke execute on function public.handle_new_user(), public.guard_profile_role() from public, anon, authenticated;
+revoke execute on function public.is_admin(), public.is_management() from public, anon;
+grant execute on function public.is_admin(), public.is_management() to authenticated;
