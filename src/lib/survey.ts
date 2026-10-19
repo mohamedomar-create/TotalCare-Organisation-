@@ -10,7 +10,7 @@ const LEVELS: Pair[] = [
   ['Engineer / specialist / rep', 'مهندس / أخصائي / مندوب'],
   ['Supervisor / team lead', 'مشرف / قائد فريق'],
   ['Manager / head', 'مدير / رئيس قسم'],
-  ['Director / GM', 'مدير إدارة / مدير عام'],
+  ['Director / MD', 'مدير إدارة / عضو منتدب'],
 ]
 export const ROLE_LEVELS = LEVELS.map(([en]) => en)
 

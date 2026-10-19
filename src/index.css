@@ -494,7 +494,7 @@ th { background: var(--surface-2); font-weight: 600; font-size: 0.88rem; }
 .ob-dept.selected { outline: 3px solid #f59e0b; outline-offset: 1px; }
 .ob-rib { background: #1B2A3A; color: #fff; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 4px; font-size: 0.72rem; font-weight: 700; line-height: 1.2; }
 .ob-rib small { font-weight: 500; opacity: 0.8; margin-top: 2px; }
-.ob-rib.l1 { background: #2F6E7C; } .ob-rib.l2 { background: #3F5FA8; } .ob-rib.l3 { background: #4E5A68; }
+.ob-rib.l0 { background: #6B5A2E; } .ob-rib.l1 { background: #1B2A3A; } .ob-rib.l2 { background: #2F6E7C; } .ob-rib.l3 { background: #3F5FA8; } .ob-rib.l4 { background: #4E5A68; }
 .ob-cell { background: var(--surface-2); border: 1.5px dashed transparent; border-radius: 9px; padding: 5px; min-height: 58px; display: flex; flex-direction: column; gap: 5px; position: relative; transition: background 0.12s, border-color 0.12s; }
 .ob-cell.span { grid-column: 2 / -1; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; align-items: flex-start; }
 .ob-cell.span > .ob-drag, .ob-cell.span > .ob-card { width: 240px; }

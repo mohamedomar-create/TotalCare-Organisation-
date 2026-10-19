@@ -1,5 +1,5 @@
 // The org board: departments as columns, levels as rows, role cards dragged into place.
-// Departments and roles follow TotalCare Egypt's own org board.
+// Departments and roles are kept general so people can rename them to fit.
 
 export interface BoardDept {
   id: string
@@ -27,20 +27,25 @@ export interface OrgBoard {
 export const TOP = 'top'
 
 export const LAYERS = [
-  { en: 'Management', ar: 'الإدارة العليا' },
-  { en: 'Department heads', ar: 'رؤساء الإدارات' },
-  { en: 'Team leads', ar: 'قادة الفرق' },
-  { en: 'Specialists & field staff', ar: 'الأخصائيون والفريق الميداني' },
+  { en: 'Owners', ar: 'الملّاك' },
+  { en: 'Managing Director', ar: 'العضو المنتدب' },
+  { en: 'Managers', ar: 'المديرون' },
+  { en: 'Supervisors', ar: 'المشرفون' },
+  { en: 'Staff', ar: 'الموظفون' },
 ]
 
+// These levels are one wide row across all departments (department = TOP).
+export const SPAN_LAYERS = [0, 1]
+export const FIRST_DEPT_LAYER = 2
+
 export const DEFAULT_DEPTS: BoardDept[] = [
-  { id: 'com', en: 'Commercial', ar: 'الإدارة التجارية', color: '#1F7A8C' },
-  { id: 'pc', en: 'Portfolio & Clinical', ar: 'المحفظة والشؤون السريرية', color: '#3F5FA8' },
-  { id: 'svc', en: 'Service', ar: 'الصيانة والخدمة', color: '#247A4A' },
-  { id: 'sc', en: 'Supply Chain & Regulatory', ar: 'سلسلة الإمداد والشؤون التنظيمية', color: '#9A5F10' },
-  { id: 'fin', en: 'Finance & Odoo', ar: 'المالية ونظام Odoo', color: '#6E4FA3' },
-  { id: 'ppl', en: 'People & Admin', ar: 'الموارد البشرية والشؤون الإدارية', color: '#A24A78' },
-  { id: 'qia', en: 'Quality & Audit', ar: 'الجودة والمراجعة الداخلية', color: '#B23A3A' },
+  { id: 'sales', en: 'Sales', ar: 'المبيعات', color: '#1F7A8C' },
+  { id: 'mkt', en: 'Marketing', ar: 'التسويق', color: '#3F5FA8' },
+  { id: 'svc', en: 'Service', ar: 'الصيانة', color: '#247A4A' },
+  { id: 'sc', en: 'Supply Chain', ar: 'سلسلة الإمداد', color: '#9A5F10' },
+  { id: 'fin', en: 'Finance', ar: 'المالية', color: '#6E4FA3' },
+  { id: 'hr', en: 'HR & Admin', ar: 'الموارد البشرية والإدارية', color: '#A24A78' },
+  { id: 'qa', en: 'Quality', ar: 'الجودة', color: '#B23A3A' },
 ]
 
 export const DEPT_COLORS = ['#1F7A8C', '#3F5FA8', '#247A4A', '#9A5F10', '#6E4FA3', '#A24A78', '#B23A3A', '#5C6773', '#2F7F6F', '#8A6D00']
@@ -51,68 +56,57 @@ export interface CatalogueRole {
   ar: string
   dept: string
   layer: number
-  duties: string
   suggested?: number // people in the suggested starting board; absent = library only
 }
 
-// Ready-made roles people can drag onto the board.
+// Ready-made, general job titles people can drag onto the board.
 export const CATALOGUE: CatalogueRole[] = [
-  { key: 'gm', en: 'General Manager', ar: 'المدير العام', dept: TOP, layer: 0, suggested: 1, duties: 'قيادة الاستراتيجية والعلاقة مع الموردين\nاعتماد الميزانية والحدود المالية\nالاجتماع الشهري مع رؤساء الإدارات' },
-  { key: 'gmoffice', en: 'GM Office', ar: 'مكتب المدير العام', dept: TOP, layer: 0, duties: 'تنسيق جدول المدير العام والاجتماعات\nمتابعة القرارات وتواريخ التنفيذ' },
-  { key: 'deputy', en: 'Deputy GM / COO', ar: 'نائب المدير العام', dept: TOP, layer: 0, duties: 'إدارة العمليات اليومية\nمتابعة الإدارات نيابة عن المدير العام' },
+  { key: 'owners', en: 'Owners / Board', ar: 'الملّاك / مجلس الإدارة', dept: TOP, layer: 0, suggested: 1 },
+  { key: 'md', en: 'Managing Director', ar: 'العضو المنتدب', dept: TOP, layer: 1, suggested: 1 },
+  { key: 'mdoffice', en: 'MD Office', ar: 'مكتب العضو المنتدب', dept: TOP, layer: 1 },
+  { key: 'deputy', en: 'Deputy MD', ar: 'نائب العضو المنتدب', dept: TOP, layer: 1 },
 
-  { key: 'com_dir', en: 'Commercial Director', ar: 'المدير التجاري', dept: 'com', layer: 1, suggested: 1, duties: 'الإيراد وهامش الربح والتحصيل\nاعتماد الأسعار داخل الحدود\nتوزيع التارجت ومتابعة الفرص' },
-  { key: 'pub', en: 'Tenders & Government Lead', ar: 'مسؤول المناقصات والقطاع الحكومي', dept: 'com', layer: 2, suggested: 1, duties: 'العلاقة مع هيئة الشراء الموحد ووزارة الصحة والجامعات\nقرار دخول المناقصة' },
-  { key: 'priv', en: 'Private Hospitals Lead', ar: 'مسؤول المستشفيات الخاصة', dept: 'com', layer: 2, suggested: 1, duties: 'تارجت المستشفيات الخاصة في المناطق\nإدارة مديري المناطق والمناديب' },
-  { key: 'homecare', en: 'Homecare Lead', ar: 'مسؤول الرعاية المنزلية', dept: 'com', layer: 2, suggested: 1, duties: 'المريض من الإحالة حتى المتابعة\nبيع وتأجير أجهزة التنفس والنوم' },
-  { key: 'kam', en: 'Key Account Manager', ar: 'مدير حسابات رئيسية', dept: 'com', layer: 3, suggested: 1, duties: 'حسابات الجهات الحكومية\nمتابعة الفواتير حتى التحصيل' },
-  { key: 'tender', en: 'Tender Desk', ar: 'مكتب المناقصات', dept: 'com', layer: 3, suggested: 1, duties: 'تجهيز ملفات المناقصات\nمتابعة الضمانات ومواعيد التسليم' },
-  { key: 'area', en: 'Area Manager', ar: 'مدير منطقة', dept: 'com', layer: 3, suggested: 2, duties: 'إدارة فريق المنطقة وتحقيق التارجت\nزيارة المستشفيات' },
-  { key: 'rep', en: 'Sales Rep', ar: 'مندوب مبيعات', dept: 'com', layer: 3, suggested: 3, duties: 'زيارة العملاء وفتح حسابات جديدة\nتسجيل كل زيارة في الـ CRM' },
-  { key: 'callctr', en: 'Call Centre Agent', ar: 'موظف مركز الاتصال', dept: 'com', layer: 3, duties: 'استقبال الطلبات والاستفسارات\nمتابعة العملاء المحتملين' },
-  { key: 'salesops', en: 'Sales Coordinator', ar: 'منسق مبيعات', dept: 'com', layer: 3, suggested: 1, duties: 'إدخال الطلبات وتحديث الـ CRM\nمتابعة التسليم مع المخازن' },
+  { key: 'sales_mgr', en: 'Sales Manager', ar: 'مدير المبيعات', dept: 'sales', layer: 2, suggested: 1 },
+  { key: 'sales_sup', en: 'Sales Supervisor', ar: 'مشرف مبيعات', dept: 'sales', layer: 3, suggested: 1 },
+  { key: 'tender', en: 'Tender Specialist', ar: 'أخصائي مناقصات', dept: 'sales', layer: 4 },
+  { key: 'rep', en: 'Sales Rep', ar: 'مندوب مبيعات', dept: 'sales', layer: 4, suggested: 3 },
+  { key: 'sales_coord', en: 'Sales Coordinator', ar: 'منسق مبيعات', dept: 'sales', layer: 4 },
 
-  { key: 'pc_dir', en: 'Portfolio & Clinical Director', ar: 'مدير المحفظة والشؤون السريرية', dept: 'pc', layer: 1, suggested: 1, duties: 'خطة لكل علامة تجارية مع الموردين\nالتسويق والتدريب الإكلينيكي' },
-  { key: 'pm', en: 'Product Manager', ar: 'مدير منتج', dept: 'pc', layer: 2, suggested: 2, duties: 'التوقعات والسعر والمورد لعائلة منتجات\nخطط الإطلاق' },
-  { key: 'clin', en: 'Clinical Education Lead', ar: 'مسؤول التدريب الإكلينيكي', dept: 'pc', layer: 2, suggested: 1, duties: 'تدريب الأطباء والتمريض\nبروتوكولات الاستخدام' },
-  { key: 'appspec', en: 'Application Specialist', ar: 'أخصائي تطبيقات', dept: 'pc', layer: 3, suggested: 1, duties: 'تشغيل الأجهزة في المستشفيات\nالتدريب الميداني' },
-  { key: 'digi', en: 'Marketing & Events', ar: 'التسويق والفعاليات', dept: 'pc', layer: 3, duties: 'الحملات والمحتوى والمؤتمرات' },
+  { key: 'mkt_mgr', en: 'Marketing Manager', ar: 'مدير التسويق', dept: 'mkt', layer: 2, suggested: 1 },
+  { key: 'product', en: 'Product Specialist', ar: 'أخصائي منتج', dept: 'mkt', layer: 3, suggested: 1 },
+  { key: 'app', en: 'Application Specialist', ar: 'أخصائي تطبيقات', dept: 'mkt', layer: 4 },
 
-  { key: 'svc_head', en: 'Service Head', ar: 'رئيس الصيانة والخدمة', dept: 'svc', layer: 1, suggested: 1, duties: 'كل جهاز مركّب من التركيب حتى الإصلاح\nخطة الصيانة الوقائية' },
-  { key: 'inst', en: 'Installation Manager', ar: 'مدير التركيب', dept: 'svc', layer: 2, suggested: 1, duties: 'التركيب والتشغيل\nمحضر الاستلام خلال يومي عمل' },
-  { key: 'svc_coord', en: 'Service Coordinator', ar: 'منسق الخدمة', dept: 'svc', layer: 2, suggested: 1, duties: 'تذاكر الصيانة في Odoo\nجدولة الزيارات' },
-  { key: 'eng', en: 'Service Engineer', ar: 'مهندس صيانة', dept: 'svc', layer: 3, suggested: 3, duties: 'الصيانة الوقائية والإصلاح\nتقارير الأعطال' },
-  { key: 'installer', en: 'Installer', ar: 'فني تركيب', dept: 'svc', layer: 3, duties: 'التركيب والتشغيل الأولي' },
+  { key: 'svc_mgr', en: 'Service Manager', ar: 'مدير الصيانة', dept: 'svc', layer: 2, suggested: 1 },
+  { key: 'svc_sup', en: 'Service Supervisor', ar: 'مشرف صيانة', dept: 'svc', layer: 3 },
+  { key: 'eng', en: 'Service Engineer', ar: 'مهندس صيانة', dept: 'svc', layer: 4, suggested: 3 },
+  { key: 'tech', en: 'Technician', ar: 'فني', dept: 'svc', layer: 4 },
 
-  { key: 'sc_head', en: 'Supply Chain Head', ar: 'رئيس سلسلة الإمداد', dept: 'sc', layer: 1, suggested: 1, duties: 'المخزون المناسب بأقل نقد محتجز\nالاستيراد والتخزين والتوزيع' },
-  { key: 'reg', en: 'Regulatory Manager', ar: 'مدير الشؤون التنظيمية', dept: 'sc', layer: 2, suggested: 1, duties: 'تسجيل الأجهزة في هيئة الدواء المصرية\nالشكاوى وبلاغات الأمان' },
-  { key: 'planner', en: 'Demand Planner', ar: 'مخطط الطلب', dept: 'sc', layer: 2, suggested: 1, duties: 'خطة الطلب والتوقعات\nاجتماع الإمداد الشهري' },
-  { key: 'import', en: 'Import & Customs Officer', ar: 'مسؤول الاستيراد والجمارك', dept: 'sc', layer: 2, suggested: 1, duties: 'الإفراج الجمركي وتصاريح الاستيراد' },
-  { key: 'whlead', en: 'Warehouse Lead', ar: 'مسؤول مخزن', dept: 'sc', layer: 2, suggested: 2, duties: 'الاستلام والتخزين والصرف\nالتشغيلة والصلاحية في Odoo' },
-  { key: 'whstaff', en: 'Warehouse Staff', ar: 'عامل مخزن', dept: 'sc', layer: 3, duties: 'الاستلام والتجهيز والجرد' },
+  { key: 'sc_mgr', en: 'Supply Chain Manager', ar: 'مدير سلسلة الإمداد', dept: 'sc', layer: 2, suggested: 1 },
+  { key: 'reg', en: 'Regulatory Specialist', ar: 'أخصائي شؤون تنظيمية', dept: 'sc', layer: 3, suggested: 1 },
+  { key: 'wh_sup', en: 'Warehouse Supervisor', ar: 'مشرف مخزن', dept: 'sc', layer: 3, suggested: 1 },
+  { key: 'import', en: 'Import Specialist', ar: 'أخصائي استيراد', dept: 'sc', layer: 4 },
+  { key: 'wh', en: 'Warehouse Staff', ar: 'موظف مخزن', dept: 'sc', layer: 4 },
 
-  { key: 'fin_head', en: 'Finance Head', ar: 'رئيس الإدارة المالية', dept: 'fin', layer: 1, suggested: 1, duties: 'النقد والائتمان ونظام Odoo\nتوقع النقد الأسبوعي' },
-  { key: 'acct', en: 'Accounting Lead', ar: 'مسؤول الحسابات', dept: 'fin', layer: 2, suggested: 1, duties: 'الدفاتر والضرائب وإقفال الشهر' },
-  { key: 'credit', en: 'Collections Lead', ar: 'مسؤول التحصيل', dept: 'fin', layer: 2, suggested: 1, duties: 'من الفاتورة إلى النقد\nتسوية شهرية مع هيئة الشراء الموحد' },
-  { key: 'erp', en: 'Odoo & Data Manager', ar: 'مدير نظام Odoo والبيانات', dept: 'fin', layer: 2, suggested: 1, duties: 'صلاحيات الدخول والتقارير\nلوحات المؤشرات' },
-  { key: 'accountant', en: 'Accountant', ar: 'محاسب', dept: 'fin', layer: 3, duties: 'القيود والمطابقات' },
-  { key: 'coll', en: 'Collections Officer', ar: 'موظف تحصيل', dept: 'fin', layer: 3, duties: 'متابعة الفواتير المتأخرة' },
+  { key: 'fin_mgr', en: 'Finance Manager', ar: 'المدير المالي', dept: 'fin', layer: 2, suggested: 1 },
+  { key: 'chief_acct', en: 'Chief Accountant', ar: 'رئيس الحسابات', dept: 'fin', layer: 3, suggested: 1 },
+  { key: 'acct', en: 'Accountant', ar: 'محاسب', dept: 'fin', layer: 4, suggested: 2 },
+  { key: 'coll', en: 'Collector', ar: 'محصّل', dept: 'fin', layer: 4 },
+  { key: 'it', en: 'IT / Odoo Specialist', ar: 'أخصائي نظم / Odoo', dept: 'fin', layer: 4 },
 
-  { key: 'ppl_head', en: 'People & Admin Head', ar: 'رئيس الموارد البشرية والشؤون الإدارية', dept: 'ppl', layer: 1, suggested: 1, duties: 'الموارد البشرية والإدارة والقانونية' },
-  { key: 'hr', en: 'HR Officer', ar: 'مسؤول موارد بشرية', dept: 'ppl', layer: 2, suggested: 1, duties: 'التوظيف والمرتبات والتأمينات\nتقييم الأداء' },
-  { key: 'admin', en: 'Admin & Fleet Coordinator', ar: 'الشؤون الإدارية والحركة', dept: 'ppl', layer: 2, suggested: 1, duties: 'المكاتب والتراخيص\nالعربيات والسواقين' },
-  { key: 'legal', en: 'Legal & Contracts', ar: 'الشؤون القانونية والعقود', dept: 'ppl', layer: 2, suggested: 1, duties: 'صياغة ومراجعة العقود\nالنزاعات' },
-  { key: 'driver', en: 'Driver', ar: 'سائق', dept: 'ppl', layer: 3, duties: 'توصيل الأجهزة والفريق' },
+  { key: 'hr_mgr', en: 'HR Manager', ar: 'مدير الموارد البشرية', dept: 'hr', layer: 2, suggested: 1 },
+  { key: 'hr', en: 'HR Specialist', ar: 'أخصائي موارد بشرية', dept: 'hr', layer: 4, suggested: 1 },
+  { key: 'admin', en: 'Admin Officer', ar: 'موظف شؤون إدارية', dept: 'hr', layer: 4 },
+  { key: 'legal', en: 'Legal Officer', ar: 'موظف شؤون قانونية', dept: 'hr', layer: 4 },
+  { key: 'driver', en: 'Driver', ar: 'سائق', dept: 'hr', layer: 4 },
 
-  { key: 'qa_head', en: 'Quality & Audit Head', ar: 'رئيس الجودة والمراجعة الداخلية', dept: 'qia', layer: 1, suggested: 1, duties: 'نظام الجودة ISO 13485\nخطة المراجعة الداخلية' },
-  { key: 'qa_officer', en: 'Quality Officer', ar: 'مسؤول جودة', dept: 'qia', layer: 2, duties: 'وثائق نظام الجودة والإجراءات\nتقييم الموردين' },
-  { key: 'auditor', en: 'Internal Auditor', ar: 'مراجع داخلي', dept: 'qia', layer: 2, duties: 'مراجعة المخزون والمستندات والصلاحيات' },
+  { key: 'qa_mgr', en: 'Quality Manager', ar: 'مدير الجودة', dept: 'qa', layer: 2, suggested: 1 },
+  { key: 'qa', en: 'Quality Specialist', ar: 'أخصائي جودة', dept: 'qa', layer: 4 },
 ]
 
 const newId = () => crypto.randomUUID()
 
 export function roleFromCatalogue(c: CatalogueRole, dept = c.dept, layer = c.layer): BoardRole {
-  return { id: newId(), en: c.en, ar: c.ar, dept, layer, count: c.suggested ?? 1, duties: c.duties }
+  return { id: newId(), en: c.en, ar: c.ar, dept, layer, count: c.suggested ?? 1, duties: '' }
 }
 
 export function emptyBoard(): OrgBoard {
@@ -137,11 +131,11 @@ export function headcount(board: OrgBoard) {
   return board.roles.reduce((sum, r) => sum + (Number(r.count) || 0), 0)
 }
 
-// Who a role reports to: explicit choice, else the most senior role in the same department above it, else the GM row.
+// Who a role reports to: explicit choice, else the nearest role above it in the same department,
+// else the nearest role in the top rows (MD, then owners).
 export function managerOf(board: OrgBoard, role: BoardRole): BoardRole | undefined {
   if (role.reportsTo) return board.roles.find((r) => r.id === role.reportsTo)
-  const above = board.roles.filter((r) => r.dept === role.dept && r.layer < role.layer).sort((a, b) => b.layer - a.layer)
-  if (above.length) return above[0]
-  if (role.dept === TOP) return undefined
-  return board.roles.find((r) => r.dept === TOP)
+  const nearest = (dept: string) =>
+    board.roles.filter((r) => r.dept === dept && r.layer < role.layer).sort((a, b) => b.layer - a.layer)[0]
+  return nearest(role.dept) ?? (role.dept === TOP ? undefined : nearest(TOP))
 }

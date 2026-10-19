@@ -8,7 +8,7 @@ An internal web app for TotalCare Egypt:
   2. Quick check: 8 short statements rated with one tap on a face scale.
   3. Your work: tap what you do (tenders, installation, EDA registration, Odoo and so on), or add your own.
   4. Problems: pick and rank your top 5 (approvals, WhatsApp instead of a system, collections, customs and so on).
-  5. Org chart: a drag-and-drop board with departments as columns and levels as rows. Start from the suggested TotalCare structure, then drag ready-made roles between boxes, drop a role on the library to remove it, and tap a role to set its title, number of people, who it reports to and its duties.
+  5. Org chart: a drag-and-drop board with departments as columns and levels as rows (Owners, Managing Director, Managers, Supervisors, Staff). Start from a suggested structure of general roles such as Sales Manager or Finance Manager, then drag ready-made roles between boxes, drop a role on the library to remove it, and tap a role to set its title, number of people, who it reports to and its duties.
   6. Ideas: your top 3 ideas, one thing to change tomorrow, and an eNPS score.
   7. Check and send.
 - **Send feedback**: a button on every page that sends a quick idea, problem, question or praise to the admin.

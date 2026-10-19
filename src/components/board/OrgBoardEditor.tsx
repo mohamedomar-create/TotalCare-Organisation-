@@ -16,7 +16,9 @@ import { Copy, GripVertical, LayoutGrid, Minus, Plus, Redo2, RotateCcw, Search, 
 import {
   CATALOGUE,
   DEPT_COLORS,
+  FIRST_DEPT_LAYER,
   LAYERS,
+  SPAN_LAYERS,
   TOP,
   emptyBoard,
   headcount,
@@ -32,15 +34,17 @@ import {
 type Selection = { kind: 'role' | 'dept'; id: string } | null
 
 const TOP_COLOR = '#1B2A3A'
+const OWNERS_COLOR = '#6B5A2E'
 
-function colorOf(board: OrgBoard, dept: string) {
-  return dept === TOP ? TOP_COLOR : board.depts.find((d) => d.id === dept)?.color ?? '#5C6773'
+function colorOf(board: OrgBoard, dept: string, layer?: number) {
+  if (dept === TOP) return layer === 0 ? OWNERS_COLOR : TOP_COLOR
+  return board.depts.find((d) => d.id === dept)?.color ?? '#5C6773'
 }
 
 /* ---------- cards ---------- */
 
 function CardBody({ role, color, compact }: { role: Pick<BoardRole, 'en' | 'ar' | 'count' | 'layer' | 'dept'>; color: string; compact?: boolean }) {
-  const filled = role.layer <= 1
+  const filled = role.layer <= FIRST_DEPT_LAYER
   return (
     <div
       className={`ob-card ${filled ? 'filled' : ''} ${compact ? 'compact' : ''}`}
@@ -131,12 +135,12 @@ function Grid({ board, readOnly, selection, onSelect, onAddEmpty }: {
   const renderRoles = (layer: number, dept: string) =>
     rolesIn(layer, dept).map((r) =>
       readOnly ? (
-        <CardBody key={r.id} role={r} color={colorOf(board, r.dept)} compact />
+        <CardBody key={r.id} role={r} color={colorOf(board, r.dept, r.layer)} compact />
       ) : (
         <DraggableRole
           key={r.id}
           role={r}
-          color={colorOf(board, r.dept)}
+          color={colorOf(board, r.dept, r.layer)}
           selected={selection?.kind === 'role' && selection.id === r.id}
           onSelect={() => onSelect?.({ kind: 'role', id: r.id })}
         />
@@ -167,9 +171,9 @@ function Grid({ board, readOnly, selection, onSelect, onAddEmpty }: {
             <span>{layer.en}</span>
             <small lang="ar">{layer.ar}</small>
           </div>
-          {i === 0 ? (
-            <Cell id={`cell|0|${TOP}`} span readOnly={readOnly} onAdd={() => onAddEmpty?.(0, TOP)}>
-              {renderRoles(0, TOP)}
+          {SPAN_LAYERS.includes(i) ? (
+            <Cell id={`cell|${i}|${TOP}`} span readOnly={readOnly} onAdd={() => onAddEmpty?.(i, TOP)}>
+              {renderRoles(i, TOP)}
             </Cell>
           ) : (
             board.depts.map((d) => (
@@ -267,7 +271,12 @@ export default function OrgBoardEditor({ value, onChange }: Props) {
   function addFromLibrary(item: CatalogueRole, layer?: number, dept?: string) {
     let target = dept ?? item.dept
     if (target !== TOP && !board.depts.some((d) => d.id === target)) target = board.depts[0]?.id ?? TOP
-    const role = roleFromCatalogue(item, target, target === TOP ? 0 : Math.max(1, layer ?? item.layer))
+    const wanted = layer ?? item.layer
+    const level =
+      target === TOP
+        ? SPAN_LAYERS.includes(wanted) ? wanted : SPAN_LAYERS[SPAN_LAYERS.length - 1]
+        : Math.max(FIRST_DEPT_LAYER, wanted)
+    const role = roleFromCatalogue(item, target, level)
     commit({ ...board, roles: [...board.roles, role] })
     setSelection({ kind: 'role', id: role.id })
   }
@@ -389,12 +398,12 @@ export default function OrgBoardEditor({ value, onChange }: Props) {
             </div>
             <select className="ob-lib-filter" value={libDept} onChange={(e) => setLibDept(e.target.value)} aria-label="Filter roles by department">
               <option value="all">All departments</option>
-              <option value={TOP}>Management</option>
+              <option value={TOP}>Owners & MD</option>
               {board.depts.map((d) => <option key={d.id} value={d.id}>{d.en}</option>)}
             </select>
             <div className="ob-lib-list">
               {libraryItems.map((item) => (
-                <LibraryItem key={item.key} item={item} color={colorOf(board, item.dept)} onAdd={() => addFromLibrary(item)} />
+                <LibraryItem key={item.key} item={item} color={colorOf(board, item.dept, item.layer)} onAdd={() => addFromLibrary(item)} />
               ))}
               {libraryItems.length === 0 && <p className="muted small">No match. Use + in any box to add your own role.</p>}
             </div>
@@ -430,7 +439,7 @@ export default function OrgBoardEditor({ value, onChange }: Props) {
                     </select>
                   </label>
                   <label>
-                    Main duties <span className="muted">(one per line)</span>
+                    Main duties <span className="muted">(optional, one per line)</span>
                     <textarea rows={5} dir="auto" value={selectedRole.duties} onFocus={record} onChange={(e) => updateRole(selectedRole.id, { duties: e.target.value }, false)} />
                   </label>
                   <div className="row">
@@ -471,8 +480,8 @@ export default function OrgBoardEditor({ value, onChange }: Props) {
       </div>
 
       <DragOverlay dropAnimation={null}>
-        {draggingRole && <div className="ob-overlay"><CardBody role={draggingRole} color={colorOf(board, draggingRole.dept)} /></div>}
-        {draggingLib && <div className="ob-overlay"><CardBody role={{ ...draggingLib, count: draggingLib.suggested ?? 1 }} color={colorOf(board, draggingLib.dept)} /></div>}
+        {draggingRole && <div className="ob-overlay"><CardBody role={draggingRole} color={colorOf(board, draggingRole.dept, draggingRole.layer)} /></div>}
+        {draggingLib && <div className="ob-overlay"><CardBody role={{ ...draggingLib, count: draggingLib.suggested ?? 1 }} color={colorOf(board, draggingLib.dept, draggingLib.layer)} /></div>}
       </DragOverlay>
     </DndContext>
   )
