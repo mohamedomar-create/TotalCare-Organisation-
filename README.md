@@ -2,10 +2,22 @@
 
 An internal web app for TotalCare Egypt:
 
-- **Org chart**: departments, roles and reporting lines, with contact details.
-- **Team directory**: searchable staff contacts, filterable by department.
-- **My vision**: each staff member can draw the structure they'd like to see (boxes and reporting lines) and describe responsibilities, challenges and suggestions.
-- **Reports for management**: the admin turns submissions into an anonymised summary and publishes it to management.
+- **Home**: shows each person their progress, with one button to start or continue.
+- **Step-by-step submission**, a full-screen wizard in 7 steps with autosave and a progress bar:
+  1. About you: department and level, picked from buttons.
+  2. Quick pulse: 8 statements rated with one tap on a face scale.
+  3. Your role: pick responsibilities from a list, or add your own.
+  4. Challenges: pick and rank your top 5.
+  5. Draw your vision: a drawing canvas. Start from a template or today's org chart, then drag shapes (leader, department, team, role, person, sticky note, area), double-click to type, and connect boxes with "reports to" or "works with" lines. It has colours, auto-arrange, undo/redo and duplicate.
+  6. Ideas: your top 3 ideas, one quick win, and an eNPS score.
+  7. Review and send.
+- **Send feedback**: a button on every page that sends a quick idea, problem, question or praise to the admin.
+- **Admin dashboard**: response rate, eNPS, average pulse scores, top challenges, a department filter and CSV export.
+- **Admin inbox**: every submission and feedback note, with unread badges, search, review status and private notes.
+- **Org chart and directory** showing departments, reporting lines and contacts.
+- **Reports for management**: anonymised summaries with charts, published by the admin.
+
+Inspiration: Typeform (one topic per screen), Culture Amp and Officevibe (pulse ratings, eNPS, pick-lists), Miro, Whimsical and Lucidchart (shape palette, templates, auto-layout), ChartHop (org chart).
 
 ## Who sees what (confidential model)
 
@@ -20,7 +32,7 @@ Staff are told this on the submission form. The rules are enforced by Postgres r
 ## Setup
 
 1. Create a Supabase project at https://supabase.com.
-2. In the **SQL editor**, run `supabase/migrations/0001_init.sql`. Optionally run `supabase/seed.sql` for example data.
+2. In the **SQL editor**, run the files in `supabase/migrations/` in order. Optionally run `supabase/seed.sql` for example data.
 3. Under **Authentication → URL configuration**, set the Site URL to where the app will be hosted (for local development, `http://localhost:5173`).
 4. Copy `.env.example` to `.env` and fill in the project URL and anon key from **Project Settings → API**.
 5. Install and run:
@@ -35,6 +47,8 @@ Staff are told this on the submission form. The rules are enforced by Postgres r
    After that, assign `management` and other roles from the **Users** page.
 
 Only `@totalcareegypt.com` addresses can sign up. The database enforces this in `handle_new_user`. To change the domain, edit it there and in `VITE_ALLOWED_DOMAIN`.
+
+The questions and pick-lists live in `src/lib/survey.ts`. Edit that file to change them.
 
 ## Deploying
 

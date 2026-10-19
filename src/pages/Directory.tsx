@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useDirectory } from '../lib/useDirectory'
+import { initials } from '../components/diagram/shapes'
 
 export default function Directory() {
   const { departments, people, loading, error } = useDirectory()
@@ -18,7 +19,8 @@ export default function Directory() {
   if (error) return <p className="error">{error}</p>
 
   return (
-    <div>
+    <div className="page wide">
+      <h1>Directory</h1>
       <div className="toolbar">
         <input placeholder="Search name, title, e-mail…" value={query} onChange={(e) => setQuery(e.target.value)} />
         <select value={dept} onChange={(e) => setDept(e.target.value)}>
@@ -33,6 +35,7 @@ export default function Directory() {
           const d = p.department_id ? deptById.get(p.department_id) : undefined
           return (
             <div key={p.id} className="card person" style={{ borderTopColor: d?.color }}>
+              <div className="avatar" style={{ background: d?.color ?? '#64748b' }}>{initials(p.full_name)}</div>
               <strong>{p.full_name}</strong>
               <span>{p.title}</span>
               {d && <span className="muted">{d.name}</span>}

@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { Report } from '../lib/types'
-import StructureEditor from '../components/StructureEditor'
+import DiagramEditor from '../components/diagram/DiagramEditor'
+import BarList from '../components/BarList'
 
 export default function ReportView() {
   const { id } = useParams()
@@ -46,7 +47,7 @@ export default function ReportView() {
   const editable = isAdmin && !report.published
 
   return (
-    <div className="page wide">
+    <div className="page wide report">
       {editable ? (
         <input className="title-input" value={report.title} onChange={(e) => setReport({ ...report, title: e.target.value })} />
       ) : (
@@ -56,6 +57,24 @@ export default function ReportView() {
         {report.stats.total} responses ·{' '}
         {report.stats.byDepartment.map((d) => `${d.name}: ${d.count}`).join(' · ')}
       </p>
+
+      {Boolean(report.stats.ratings?.length || report.stats.challenges?.length) && (
+        <div className="dash-grid">
+          {report.stats.ratings && (
+            <section className="card">
+              <h2>Pulse — average score (1–5)</h2>
+              <BarList items={report.stats.ratings.map((r) => ({ label: r.label, value: r.average, detail: `${r.count} answers` }))} max={5} format={(v) => v.toFixed(1)} />
+            </section>
+          )}
+          {report.stats.challenges && (
+            <section className="card">
+              <h2>Top challenges</h2>
+              <BarList items={report.stats.challenges.map((c) => ({ label: c.label, value: c.count }))} />
+              {report.stats.enps && <p className="muted small">eNPS: {report.stats.enps.score > 0 ? '+' : ''}{report.stats.enps.score} ({report.stats.enps.count} answers)</p>}
+            </section>
+          )}
+        </div>
+      )}
 
       {editable ? (
         <textarea className="report-text" rows={30} value={report.summary} onChange={(e) => setReport({ ...report, summary: e.target.value })} />
@@ -72,7 +91,7 @@ export default function ReportView() {
                 <strong>Proposal {i + 1}</strong>
                 {editable && <button className="link danger" onClick={() => removeStructure(i)}>Remove from report</button>}
               </div>
-              <StructureEditor value={st} readOnly height={320} />
+              <DiagramEditor value={st} readOnly height={320} />
             </div>
           ))}
         </>

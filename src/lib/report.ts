@@ -1,4 +1,5 @@
 import type { Department, ReportStats, Structure, Submission } from './types'
+import { enps, ratingAverages, tagCounts } from './analytics'
 
 // Departments with fewer submissions than this are merged into one group,
 // so management can't work out who wrote what by elimination.
@@ -39,6 +40,9 @@ export function buildDraftReport(submissions: Submission[], departments: Departm
   const stats: ReportStats = {
     total: submitted.length,
     byDepartment: [...merged].map(([name, subs]) => ({ name, count: subs.length })).sort((a, b) => b.count - a.count),
+    ratings: ratingAverages(submitted),
+    challenges: tagCounts(submitted.map((s) => s.challenge_tags)).slice(0, 10),
+    enps: submitted.length >= MIN_GROUP_SIZE ? enps(submitted) : null,
   }
 
   const sections = [...merged]
@@ -47,14 +51,17 @@ export function buildDraftReport(submissions: Submission[], departments: Departm
       [
         `## ${name} (${subs.length} responses)`,
         '',
-        '### Responsibilities',
+        '### Most-picked challenges',
+        tagCounts(subs.map((s) => s.challenge_tags)).slice(0, 5).map((c) => `- ${c.label} (${c.count})`).join('\n') || '- (none picked)',
+        '',
+        '### Role clarity notes',
         bullets(subs.map((s) => s.responsibilities)),
         '',
-        '### Challenges',
+        '### Challenge examples',
         bullets(subs.map((s) => s.challenges)),
         '',
-        '### Suggestions',
-        bullets(subs.map((s) => s.suggestions)),
+        '### Ideas',
+        bullets(subs.flatMap((s) => [s.quick_win, ...(s.ideas ?? []), s.suggestions])),
       ].join('\n'),
     )
 

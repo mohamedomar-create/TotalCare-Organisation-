@@ -3,6 +3,7 @@ import { Background, Controls, ReactFlow, type Edge, type Node } from '@xyflow/r
 import { useDirectory } from '../lib/useDirectory'
 import { layoutTree, NODE_W } from '../lib/layout'
 import type { Person } from '../lib/types'
+import { initials } from '../components/diagram/shapes'
 
 export default function OrgChart() {
   const { departments, people, loading, error } = useDirectory()
@@ -19,12 +20,16 @@ export default function OrgChart() {
         data: {
           label: (
             <div className="person-node">
-              <strong>{p.full_name}</strong>
-              <span>{p.title}</span>
-              {dept && <em style={{ color: dept.color }}>{dept.name}</em>}
+              <div className="avatar" style={{ background: dept?.color ?? '#64748b' }}>{initials(p.full_name)}</div>
+              <div>
+                <strong>{p.full_name}</strong>
+                <span>{p.title}</span>
+                {dept && <em>{dept.name}</em>}
+              </div>
             </div>
           ),
         },
+        className: 'org-node',
         style: { width: NODE_W, borderTop: `4px solid ${dept?.color ?? '#94a3b8'}` },
         draggable: false,
       }
@@ -43,9 +48,15 @@ export default function OrgChart() {
   const manager = selected?.manager_id ? people.find((p) => p.id === selected.manager_id) : undefined
 
   return (
+    <div className="page wide">
+      <div className="row between">
+        <h1>Org chart</h1>
+        <span className="muted small">{people.length} people · {departments.length} departments · click a person for details</span>
+      </div>
     <div className="chart-page">
       <div className="chart">
         <ReactFlow
+          proOptions={{ hideAttribution: true }}
           nodes={nodes}
           edges={edges}
           fitView
@@ -75,6 +86,7 @@ export default function OrgChart() {
           </dl>
         </aside>
       )}
+    </div>
     </div>
   )
 }

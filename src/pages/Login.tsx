@@ -29,10 +29,19 @@ export default function Login() {
   }
 
   return (
-    <div className="centered">
-      <form className="card narrow" onSubmit={submit}>
-        <h1>TotalCare Organisation</h1>
-        <p className="muted">Sign in with your work e-mail. We'll send you a one-time sign-in link.</p>
+    <div className="login">
+      <div className="login-art">
+        <div className="logo big">TC</div>
+        <h2>Help shape how TotalCare works</h2>
+        <ul>
+          <li>✔ Quick, tap-to-answer questions</li>
+          <li>✔ Draw the structure you’d like to see</li>
+          <li>✔ Confidential — sent to the admin only</li>
+        </ul>
+      </div>
+      <form className="card login-card" onSubmit={submit}>
+        <h1>Sign in</h1>
+        <p className="muted">Use your work e-mail. We’ll send you a one-time sign-in link — no password needed.</p>
         {status === 'sent' ? (
           <p className="notice">Check your inbox for the sign-in link sent to {email}.</p>
         ) : (
@@ -52,7 +61,7 @@ export default function Login() {
               />
             </label>
             {error && <p className="error">{error}</p>}
-            <button type="submit" disabled={status === 'sending'}>
+            <button type="submit" className="big" disabled={status === 'sending'}>
               {status === 'sending' ? 'Sending…' : 'Send sign-in link'}
             </button>
           </>

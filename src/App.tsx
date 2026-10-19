@@ -1,13 +1,34 @@
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import {
+  BarChart3,
+  BookUser,
+  FileText,
+  Home as HomeIcon,
+  Inbox,
+  LogOut,
+  Menu,
+  Network,
+  PencilRuler,
+  Settings2,
+  Users,
+  X,
+} from 'lucide-react'
 import { useAuth } from './lib/auth'
 import { isConfigured, supabase } from './lib/supabase'
+import { useAdminCounts } from './lib/useAdminCounts'
 import type { Role } from './lib/types'
+import { initials } from './components/diagram/shapes'
+import FeedbackButton from './components/FeedbackButton'
 import Login from './pages/Login'
+import Home from './pages/Home'
 import OrgChart from './pages/OrgChart'
 import Directory from './pages/Directory'
 import MyVision from './pages/MyVision'
-import VisionEdit from './pages/VisionEdit'
-import AdminSubmissions from './pages/AdminSubmissions'
+import VisionWizard from './pages/VisionWizard'
+import AdminDashboard from './pages/AdminDashboard'
+import AdminInbox from './pages/AdminInbox'
+import AdminSubmissionDetail from './pages/AdminSubmissionDetail'
 import AdminDirectory from './pages/AdminDirectory'
 import AdminUsers from './pages/AdminUsers'
 import Reports from './pages/Reports'
@@ -19,75 +40,102 @@ function RequireRole({ roles, children }: { roles: Role[]; children: React.React
   return <>{children}</>
 }
 
+function Badge({ n }: { n: number }) {
+  return n > 0 ? <span className="badge">{n > 99 ? '99+' : n}</span> : null
+}
+
 export default function App() {
   const { session, profile, loading } = useAuth()
+  const role = profile?.role ?? 'staff'
+  const isAdmin = role === 'admin'
+  const counts = useAdminCounts(Boolean(session) && isAdmin)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => setMenuOpen(false), [location.pathname])
 
   if (!isConfigured) {
     return (
       <div className="centered">
         <div className="card narrow">
           <h1>Setup needed</h1>
-          <p>
-            Copy <code>.env.example</code> to <code>.env</code> and fill in your Supabase URL and anon
-            key, then restart the dev server. See the README.
-          </p>
+          <p>Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code>. See the README.</p>
         </div>
       </div>
     )
   }
-  if (loading) return <div className="centered">Loading…</div>
+  if (loading) return <div className="centered muted">Loading…</div>
   if (!session) return <Login />
 
-  const role = profile?.role ?? 'staff'
+  const name = profile?.full_name || session.user.email || ''
+  // The submission wizard runs full-screen, like a Typeform, to keep people focused.
+  const focus = /^\/vision\/[^/]+$/.test(location.pathname)
 
   return (
-    <div className="shell">
-      <header className="topbar">
-        <span className="brand">TotalCare Organisation</span>
+    <div className={`app ${focus ? 'focus' : ''}`}>
+      <header className="mobile-bar">
+        <button type="button" className="icon-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Menu">
+          {menuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+        <span className="brand">TotalCare <span>Organisation</span></span>
+        {isAdmin && <Badge n={counts.submissions + counts.feedback} />}
+      </header>
+
+      <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
+        <div className="brand-block">
+          <div className="logo">TC</div>
+          <div>
+            <div className="brand">TotalCare</div>
+            <div className="muted small">Organisation</div>
+          </div>
+        </div>
+
         <nav>
-          <NavLink to="/" end>Org chart</NavLink>
-          <NavLink to="/directory">Directory</NavLink>
-          <NavLink to="/vision">My vision</NavLink>
-          {(role === 'management' || role === 'admin') && <NavLink to="/reports">Reports</NavLink>}
-          {role === 'admin' && (
+          <NavLink to="/" end><HomeIcon size={18} /> Home</NavLink>
+          <NavLink to="/org"><Network size={18} /> Org chart</NavLink>
+          <NavLink to="/directory"><BookUser size={18} /> Directory</NavLink>
+          <NavLink to="/vision"><PencilRuler size={18} /> My vision</NavLink>
+          {(role === 'management' || isAdmin) && <NavLink to="/reports"><FileText size={18} /> Reports</NavLink>}
+
+          {isAdmin && (
             <>
-              <NavLink to="/admin/submissions">Submissions</NavLink>
-              <NavLink to="/admin/directory">Edit directory</NavLink>
-              <NavLink to="/admin/users">Users</NavLink>
+              <p className="nav-section">Admin</p>
+              <NavLink to="/admin" end><BarChart3 size={18} /> Dashboard</NavLink>
+              <NavLink to="/admin/inbox"><Inbox size={18} /> Inbox <Badge n={counts.submissions + counts.feedback} /></NavLink>
+              <NavLink to="/admin/directory"><Settings2 size={18} /> Edit directory</NavLink>
+              <NavLink to="/admin/users"><Users size={18} /> Users & roles</NavLink>
             </>
           )}
         </nav>
-        <span className="who">
-          {profile?.full_name || session.user.email} · {role}
-          <button className="link" onClick={() => supabase.auth.signOut()}>Sign out</button>
-        </span>
-      </header>
-      <main>
+
+        <div className="sidebar-foot">
+          <FeedbackButton compact />
+          <div className="me">
+            <div className="avatar small">{initials(name)}</div>
+            <div className="me-text">
+              <div className="me-name">{name}</div>
+              <div className="muted small">{role}</div>
+            </div>
+            <button type="button" className="icon-btn" title="Sign out" onClick={() => supabase.auth.signOut()}><LogOut size={17} /></button>
+          </div>
+        </div>
+      </aside>
+      {menuOpen && <div className="sidebar-scrim" onClick={() => setMenuOpen(false)} />}
+
+      <main className="content">
         <Routes>
-          <Route path="/" element={<OrgChart />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/org" element={<OrgChart />} />
           <Route path="/directory" element={<Directory />} />
           <Route path="/vision" element={<MyVision />} />
-          <Route path="/vision/:id" element={<VisionEdit />} />
-          <Route
-            path="/reports"
-            element={<RequireRole roles={['management', 'admin']}><Reports /></RequireRole>}
-          />
-          <Route
-            path="/reports/:id"
-            element={<RequireRole roles={['management', 'admin']}><ReportView /></RequireRole>}
-          />
-          <Route
-            path="/admin/submissions"
-            element={<RequireRole roles={['admin']}><AdminSubmissions /></RequireRole>}
-          />
-          <Route
-            path="/admin/directory"
-            element={<RequireRole roles={['admin']}><AdminDirectory /></RequireRole>}
-          />
-          <Route
-            path="/admin/users"
-            element={<RequireRole roles={['admin']}><AdminUsers /></RequireRole>}
-          />
+          <Route path="/vision/:id" element={<VisionWizard />} />
+          <Route path="/reports" element={<RequireRole roles={['management', 'admin']}><Reports /></RequireRole>} />
+          <Route path="/reports/:id" element={<RequireRole roles={['management', 'admin']}><ReportView /></RequireRole>} />
+          <Route path="/admin" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />
+          <Route path="/admin/inbox" element={<RequireRole roles={['admin']}><AdminInbox /></RequireRole>} />
+          <Route path="/admin/submissions/:id" element={<RequireRole roles={['admin']}><AdminSubmissionDetail /></RequireRole>} />
+          <Route path="/admin/directory" element={<RequireRole roles={['admin']}><AdminDirectory /></RequireRole>} />
+          <Route path="/admin/users" element={<RequireRole roles={['admin']}><AdminUsers /></RequireRole>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
