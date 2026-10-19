@@ -41,11 +41,11 @@ export const FIRST_DEPT_LAYER = 2
 export const DEFAULT_DEPTS: BoardDept[] = [
   { id: 'sales', en: 'Sales', ar: 'المبيعات', color: '#1F7A8C' },
   { id: 'mkt', en: 'Marketing', ar: 'التسويق', color: '#3F5FA8' },
-  { id: 'svc', en: 'Service', ar: 'الصيانة', color: '#247A4A' },
-  { id: 'sc', en: 'Supply Chain', ar: 'سلسلة الإمداد', color: '#9A5F10' },
   { id: 'fin', en: 'Finance', ar: 'المالية', color: '#6E4FA3' },
-  { id: 'hr', en: 'HR & Admin', ar: 'الموارد البشرية والإدارية', color: '#A24A78' },
-  { id: 'qa', en: 'Quality', ar: 'الجودة', color: '#B23A3A' },
+  { id: 'hr', en: 'Legal & HR', ar: 'الشؤون القانونية والموارد البشرية', color: '#A24A78' },
+  { id: 'qa', en: 'Systems & Quality', ar: 'النظم والجودة', color: '#B23A3A' },
+  { id: 'svc', en: 'Service', ar: 'الصيانة', color: '#247A4A' },
+  { id: 'pur', en: 'Purchasing', ar: 'المشتريات', color: '#9A5F10' },
 ]
 
 export const DEPT_COLORS = ['#1F7A8C', '#3F5FA8', '#247A4A', '#9A5F10', '#6E4FA3', '#A24A78', '#B23A3A', '#5C6773', '#2F7F6F', '#8A6D00']
@@ -75,32 +75,34 @@ export const CATALOGUE: CatalogueRole[] = [
   { key: 'mkt_mgr', en: 'Marketing Manager', ar: 'مدير التسويق', dept: 'mkt', layer: 2, suggested: 1 },
   { key: 'product', en: 'Product Specialist', ar: 'أخصائي منتج', dept: 'mkt', layer: 3, suggested: 1 },
   { key: 'app', en: 'Application Specialist', ar: 'أخصائي تطبيقات', dept: 'mkt', layer: 4 },
+  { key: 'mkt_exec', en: 'Marketing Executive', ar: 'أخصائي تسويق', dept: 'mkt', layer: 4 },
+
+  { key: 'fin_mgr', en: 'Finance Manager', ar: 'المدير المالي', dept: 'fin', layer: 2, suggested: 1 },
+  { key: 'chief_acct', en: 'Chief Accountant', ar: 'رئيس الحسابات', dept: 'fin', layer: 3, suggested: 1 },
+  { key: 'acct', en: 'Accountant', ar: 'محاسب', dept: 'fin', layer: 4, suggested: 2 },
+  { key: 'coll', en: 'Collector', ar: 'محصّل', dept: 'fin', layer: 4 },
+
+  { key: 'hr_mgr', en: 'Legal & HR Manager', ar: 'مدير الشؤون القانونية والموارد البشرية', dept: 'hr', layer: 2, suggested: 1 },
+  { key: 'legal', en: 'Legal Officer', ar: 'موظف شؤون قانونية', dept: 'hr', layer: 4, suggested: 1 },
+  { key: 'hr', en: 'HR Specialist', ar: 'أخصائي موارد بشرية', dept: 'hr', layer: 4, suggested: 1 },
+  { key: 'admin', en: 'Admin Officer', ar: 'موظف شؤون إدارية', dept: 'hr', layer: 4 },
+  { key: 'driver', en: 'Driver', ar: 'سائق', dept: 'hr', layer: 4 },
+
+  { key: 'qa_mgr', en: 'Systems & Quality Manager', ar: 'مدير النظم والجودة', dept: 'qa', layer: 2, suggested: 1 },
+  { key: 'it', en: 'IT / Odoo Specialist', ar: 'أخصائي نظم / Odoo', dept: 'qa', layer: 4, suggested: 1 },
+  { key: 'qa', en: 'Quality Specialist', ar: 'أخصائي جودة', dept: 'qa', layer: 4, suggested: 1 },
+  { key: 'reg', en: 'Regulatory Specialist', ar: 'أخصائي شؤون تنظيمية', dept: 'qa', layer: 4 },
 
   { key: 'svc_mgr', en: 'Service Manager', ar: 'مدير الصيانة', dept: 'svc', layer: 2, suggested: 1 },
   { key: 'svc_sup', en: 'Service Supervisor', ar: 'مشرف صيانة', dept: 'svc', layer: 3 },
   { key: 'eng', en: 'Service Engineer', ar: 'مهندس صيانة', dept: 'svc', layer: 4, suggested: 3 },
   { key: 'tech', en: 'Technician', ar: 'فني', dept: 'svc', layer: 4 },
 
-  { key: 'sc_mgr', en: 'Supply Chain Manager', ar: 'مدير سلسلة الإمداد', dept: 'sc', layer: 2, suggested: 1 },
-  { key: 'reg', en: 'Regulatory Specialist', ar: 'أخصائي شؤون تنظيمية', dept: 'sc', layer: 3, suggested: 1 },
-  { key: 'wh_sup', en: 'Warehouse Supervisor', ar: 'مشرف مخزن', dept: 'sc', layer: 3, suggested: 1 },
-  { key: 'import', en: 'Import Specialist', ar: 'أخصائي استيراد', dept: 'sc', layer: 4 },
-  { key: 'wh', en: 'Warehouse Staff', ar: 'موظف مخزن', dept: 'sc', layer: 4 },
-
-  { key: 'fin_mgr', en: 'Finance Manager', ar: 'المدير المالي', dept: 'fin', layer: 2, suggested: 1 },
-  { key: 'chief_acct', en: 'Chief Accountant', ar: 'رئيس الحسابات', dept: 'fin', layer: 3, suggested: 1 },
-  { key: 'acct', en: 'Accountant', ar: 'محاسب', dept: 'fin', layer: 4, suggested: 2 },
-  { key: 'coll', en: 'Collector', ar: 'محصّل', dept: 'fin', layer: 4 },
-  { key: 'it', en: 'IT / Odoo Specialist', ar: 'أخصائي نظم / Odoo', dept: 'fin', layer: 4 },
-
-  { key: 'hr_mgr', en: 'HR Manager', ar: 'مدير الموارد البشرية', dept: 'hr', layer: 2, suggested: 1 },
-  { key: 'hr', en: 'HR Specialist', ar: 'أخصائي موارد بشرية', dept: 'hr', layer: 4, suggested: 1 },
-  { key: 'admin', en: 'Admin Officer', ar: 'موظف شؤون إدارية', dept: 'hr', layer: 4 },
-  { key: 'legal', en: 'Legal Officer', ar: 'موظف شؤون قانونية', dept: 'hr', layer: 4 },
-  { key: 'driver', en: 'Driver', ar: 'سائق', dept: 'hr', layer: 4 },
-
-  { key: 'qa_mgr', en: 'Quality Manager', ar: 'مدير الجودة', dept: 'qa', layer: 2, suggested: 1 },
-  { key: 'qa', en: 'Quality Specialist', ar: 'أخصائي جودة', dept: 'qa', layer: 4 },
+  { key: 'pur_mgr', en: 'Purchasing Manager', ar: 'مدير المشتريات', dept: 'pur', layer: 2, suggested: 1 },
+  { key: 'wh_sup', en: 'Warehouse Supervisor', ar: 'مشرف مخزن', dept: 'pur', layer: 3, suggested: 1 },
+  { key: 'buyer', en: 'Purchasing Specialist', ar: 'أخصائي مشتريات', dept: 'pur', layer: 4, suggested: 1 },
+  { key: 'import', en: 'Import Specialist', ar: 'أخصائي استيراد', dept: 'pur', layer: 4 },
+  { key: 'wh', en: 'Warehouse Staff', ar: 'موظف مخزن', dept: 'pur', layer: 4 },
 ]
 
 const newId = () => crypto.randomUUID()

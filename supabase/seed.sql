@@ -4,10 +4,10 @@ insert into public.departments (name, description, color) values
   ('Sales', 'Sales, tenders and key accounts', '#1F7A8C'),
   ('Marketing', 'Marketing, products and applications', '#3F5FA8'),
   ('Service', 'Installation and maintenance', '#247A4A'),
-  ('Supply Chain', 'Import, warehouses and registration', '#9A5F10'),
+  ('Purchasing', 'Purchasing, import and warehouses', '#9A5F10'),
   ('Finance', 'Accounting, collections and systems', '#6E4FA3'),
-  ('HR & Admin', 'HR, admin and legal', '#A24A78'),
-  ('Quality', 'Quality and audit', '#B23A3A');
+  ('Legal & HR', 'Legal, HR and admin', '#A24A78'),
+  ('Systems & Quality', 'Systems (IT / Odoo) and quality', '#B23A3A');
 
 with d as (select id, name from public.departments),
 md as (
@@ -21,6 +21,6 @@ from (values
   ('Example Sales Manager', 'Sales Manager', 'Sales'),
   ('Example Service Manager', 'Service Manager', 'Service'),
   ('Example Finance Manager', 'Finance Manager', 'Finance'),
-  ('Example HR Manager', 'HR Manager', 'HR & Admin')
+  ('Example HR Manager', 'Legal & HR Manager', 'Legal & HR')
 ) as v(full_name, title, dept)
 join d on d.name = v.dept;

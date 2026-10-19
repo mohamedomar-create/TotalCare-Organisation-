@@ -53,8 +53,8 @@ function CardBody({ role, color, compact }: { role: Pick<BoardRole, 'en' | 'ar' 
       <div className="ob-card-text">
         <span className="ob-en">{role.en || 'New role'}</span>
         {role.ar && <span className="ob-ar" lang="ar">{role.ar}</span>}
+        {role.count > 1 && <span className="ob-count" title={`${role.count} people`}>×{role.count} people</span>}
       </div>
-      {role.count > 1 && <span className="ob-count" title={`${role.count} people`}>×{role.count}</span>}
     </div>
   )
 }
@@ -148,7 +148,10 @@ function Grid({ board, readOnly, selection, onSelect, onAddEmpty }: {
     )
 
   return (
-    <div className="ob-grid" style={{ gridTemplateColumns: `86px repeat(${cols}, minmax(${readOnly ? 110 : 132}px, 1fr))` }}>
+    <div
+      className="ob-grid"
+      style={{ gridTemplateColumns: `76px repeat(${cols}, minmax(0, 1fr))`, minWidth: 76 + cols * (readOnly ? 96 : 112) }}
+    >
       <div />
       {board.depts.map((d) => (
         <button
@@ -430,6 +433,32 @@ export default function OrgBoardEditor({ value, onChange }: Props) {
                     <button type="button" className="secondary" onClick={() => updateRole(selectedRole.id, { count: Math.max(0, selectedRole.count - 1) })} aria-label="Fewer"><Minus size={15} /></button>
                     <span>{selectedRole.count}</span>
                     <button type="button" className="secondary" onClick={() => updateRole(selectedRole.id, { count: selectedRole.count + 1 })} aria-label="More"><Plus size={15} /></button>
+                  </div>
+                  <div className="two-fields">
+                    <label>
+                      Department
+                      <select
+                        value={selectedRole.dept}
+                        onChange={(e) => {
+                          const dept = e.target.value
+                          const layer = dept === TOP
+                            ? (SPAN_LAYERS.includes(selectedRole.layer) ? selectedRole.layer : SPAN_LAYERS[SPAN_LAYERS.length - 1])
+                            : Math.max(FIRST_DEPT_LAYER, selectedRole.layer)
+                          updateRole(selectedRole.id, { dept, layer })
+                        }}
+                      >
+                        <option value={TOP}>Owners & MD</option>
+                        {board.depts.map((d) => <option key={d.id} value={d.id}>{d.en}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      Level
+                      <select value={selectedRole.layer} onChange={(e) => updateRole(selectedRole.id, { layer: Number(e.target.value) })}>
+                        {LAYERS.map((l, i) =>
+                          (selectedRole.dept === TOP ? SPAN_LAYERS.includes(i) : i >= FIRST_DEPT_LAYER) ? <option key={i} value={i}>{l.en}</option> : null,
+                        )}
+                      </select>
+                    </label>
                   </div>
                   <label>
                     Reports to
