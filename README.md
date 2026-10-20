@@ -1,8 +1,19 @@
 # TotalCare Organisation
 
-An internal web app for TotalCare Egypt:
+An internal staff hub for TotalCare Egypt, where people share ideas, thank each other, speak up safely and help shape the organisation.
 
-- **Home**: shows each person their progress, with one button to start or continue.
+**Community and loyalty**
+- **Home**: a greeting, your points and level, one-tap actions (share an idea, thank a colleague, the survey, speak up safely), news, top ideas, recent thank-yous, a weekly pulse poll, birthdays, work anniversaries and new joiners.
+- **Ideas board**: anyone can post an idea, with or without their name. Colleagues like it and comment on it. The admin moves it through New → Under review → Planned → Done (or Not now) and can add a management reply. Ideas posted without a name show "A colleague from Sales", and only the admin can see who wrote them.
+- **Kudos wall**: public thank-yous tagged with a TotalCare value (teamwork, customer first, integrity, fresh idea, extra mile, always helping), plus the month's most-thanked colleagues.
+- **Sectors**: a colour-coded page for each department, showing its team, ideas and thank-yous.
+- **Points and rewards**: points for taking part, levels from Newcomer to Legend, badges, a leaderboard and a rewards shop (coffee, lunch with the MD, vouchers, a day off). The admin approves reward requests.
+- **Pulse polls**: one quick question at a time. Answers are private, and only totals are shown.
+- **My profile**: sector, job title, birthday (day and month only) and joining date.
+- **Admin → Community**: approve reward requests, edit the shop, post announcements (management can do this too), run polls and award points.
+
+**Organisation survey**
+- **Survey progress**: each person's progress, with one button to start or continue.
 - **Step-by-step submission**, a full-screen wizard in 7 steps with autosave and a progress bar. Everything is in simple English with Arabic underneath:
   1. About you: department and level, picked from buttons.
   2. Quick check: 8 short statements rated with one tap on a face scale.
@@ -16,7 +27,7 @@ An internal web app for TotalCare Egypt:
 - **Admin inbox**: every submission and feedback note, with unread badges, search, review status and private notes.
 - **Org chart and directory** showing departments, reporting lines and contacts.
 - **Reports for management**: anonymised summaries with charts, published by the admin.
-- **E-mail**: the admin gets an e-mail for every submission and every feedback note, plus a daily or weekly summary of all results. Management gets an e-mail when a report is published. Configure this on the admin **E-mail** page.
+- **E-mail**: the admin gets an e-mail for every submission, feedback note, new idea (including the real author of an anonymous idea) and reward request, plus a daily or weekly summary of all results. Management gets an e-mail when a report is published. Configure this on the admin **E-mail** page.
 
 Inspiration: Typeform (one topic per screen), Culture Amp and Officevibe (pulse ratings, eNPS, pick-lists), and the TotalCare Org Board (drag-and-drop org chart).
 
@@ -26,6 +37,7 @@ Inspiration: Typeform (one topic per screen), Culture Amp and Officevibe (pulse 
 |---|---|
 | staff | Org chart, directory, and **only their own** submissions |
 | admin | Everything, **including the author's name on each submission**; manages the directory, roles and reports |
+| everyone | Ideas (anonymous ones without a name), kudos, sectors, announcements, poll totals, the leaderboard, their own points |
 | management | **Only published reports**. These contain no names, and departments with fewer than 3 responses are merged into one group |
 
 Staff are told this on the submission form. The rules are enforced by Postgres row-level security (`supabase/migrations/0001_init.sql`), not only by the UI. Generated reports are drafts: the admin should read them and remove anything in the text that could identify a person before publishing.

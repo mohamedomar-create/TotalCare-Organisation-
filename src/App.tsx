@@ -4,7 +4,13 @@ import {
   BarChart3,
   BookUser,
   FileText,
+  Gift,
+  Heart,
   Home as HomeIcon,
+  LayoutGrid,
+  Lightbulb,
+  Sparkles,
+  UserRound,
   Inbox,
   LogOut,
   Mail,
@@ -35,6 +41,15 @@ import AdminUsers from './pages/AdminUsers'
 import AdminEmail from './pages/AdminEmail'
 import Reports from './pages/Reports'
 import ReportView from './pages/ReportView'
+import Ideas from './pages/Ideas'
+import IdeaDetail from './pages/IdeaDetail'
+import KudosWall from './pages/KudosWall'
+import Sectors from './pages/Sectors'
+import SectorDetail from './pages/SectorDetail'
+import Rewards from './pages/Rewards'
+import Profile from './pages/Profile'
+import AdminCommunity from './pages/AdminCommunity'
+import { levelFor, useMyPoints } from './lib/community'
 
 function RequireRole({ roles, children }: { roles: Role[]; children: React.ReactNode }) {
   const { profile } = useAuth()
@@ -51,6 +66,7 @@ export default function App() {
   const role = profile?.role ?? 'staff'
   const isAdmin = role === 'admin'
   const counts = useAdminCounts(Boolean(session) && isAdmin)
+  const { balance, earned } = useMyPoints(session?.user.id)
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
 
@@ -94,16 +110,29 @@ export default function App() {
 
         <nav>
           <NavLink to="/" end><HomeIcon size={18} /> Home</NavLink>
+
+          <p className="nav-section">Community</p>
+          <NavLink to="/ideas"><Lightbulb size={18} /> Ideas</NavLink>
+          <NavLink to="/kudos"><Heart size={18} /> Kudos wall</NavLink>
+          <NavLink to="/sectors"><LayoutGrid size={18} /> Sectors</NavLink>
+          <NavLink to="/rewards"><Gift size={18} /> Rewards <span className="nav-pts">{balance}</span></NavLink>
+
+          <p className="nav-section">Our company</p>
           <NavLink to="/org"><Network size={18} /> Org chart</NavLink>
           <NavLink to="/directory"><BookUser size={18} /> Directory</NavLink>
-          <NavLink to="/vision"><PencilRuler size={18} /> My vision</NavLink>
+
+          <p className="nav-section">My space</p>
+          <NavLink to="/vision"><PencilRuler size={18} /> Shape TotalCare</NavLink>
+          <NavLink to="/me"><UserRound size={18} /> My profile</NavLink>
           {(role === 'management' || isAdmin) && <NavLink to="/reports"><FileText size={18} /> Reports</NavLink>}
+          {role === 'management' && <NavLink to="/admin/community"><Sparkles size={18} /> Announcements</NavLink>}
 
           {isAdmin && (
             <>
               <p className="nav-section">Admin</p>
               <NavLink to="/admin" end><BarChart3 size={18} /> Dashboard</NavLink>
               <NavLink to="/admin/inbox"><Inbox size={18} /> Inbox <Badge n={counts.submissions + counts.feedback} /></NavLink>
+              <NavLink to="/admin/community"><Sparkles size={18} /> Community</NavLink>
               <NavLink to="/admin/directory"><Settings2 size={18} /> Edit directory</NavLink>
               <NavLink to="/admin/users"><Users size={18} /> Users & roles</NavLink>
               <NavLink to="/admin/email"><Mail size={18} /> E-mail</NavLink>
@@ -117,7 +146,7 @@ export default function App() {
             <div className="avatar small">{initials(name)}</div>
             <div className="me-text">
               <div className="me-name">{name}</div>
-              <div className="muted small">{role}</div>
+              <div className="muted small">{levelFor(earned).emoji} {levelFor(earned).name} · {role}</div>
             </div>
             <button type="button" className="icon-btn" title="Sign out" onClick={() => supabase.auth.signOut()}><LogOut size={17} /></button>
           </div>
@@ -132,6 +161,14 @@ export default function App() {
           <Route path="/directory" element={<Directory />} />
           <Route path="/vision" element={<MyVision />} />
           <Route path="/vision/:id" element={<VisionWizard />} />
+          <Route path="/ideas" element={<Ideas />} />
+          <Route path="/ideas/:id" element={<IdeaDetail />} />
+          <Route path="/kudos" element={<KudosWall />} />
+          <Route path="/sectors" element={<Sectors />} />
+          <Route path="/sectors/:id" element={<SectorDetail />} />
+          <Route path="/rewards" element={<Rewards />} />
+          <Route path="/me" element={<Profile />} />
+          <Route path="/admin/community" element={<RequireRole roles={['management', 'admin']}><AdminCommunity /></RequireRole>} />
           <Route path="/reports" element={<RequireRole roles={['management', 'admin']}><Reports /></RequireRole>} />
           <Route path="/reports/:id" element={<RequireRole roles={['management', 'admin']}><ReportView /></RequireRole>} />
           <Route path="/admin" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />

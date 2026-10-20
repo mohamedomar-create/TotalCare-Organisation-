@@ -1,5 +1,5 @@
 // Sends TotalCare Organisation e-mails through Resend.
-// Called by the database (submission / feedback / report / daily tick) with a shared secret,
+// Called by the database (submission / feedback / idea / reward request / report / daily tick) with a shared secret,
 // or by a signed-in admin from the Email settings page (test / digest now).
 //
 // Secrets (Supabase → Edge Functions → Secrets):
@@ -153,6 +153,38 @@ async function feedbackEmail(id: string) {
   return send('feedback', to, `${CATEGORY[fb.category] ?? 'Feedback'} from ${name}`, layout('New feedback', body, s.app_url, '/admin/inbox?tab=feedback'))
 }
 
+async function ideaEmail(id: string) {
+  const s = await settings()
+  if (!s.notify_feedback) return { sent: false, reason: 'Turned off' }
+  const { data: idea } = await db.from('ideas').select('*').eq('id', id).single()
+  if (!idea) return { sent: false, reason: 'Not found' }
+  // The admin sees the real author even when the idea was posted without a name.
+  const { data: link } = await db.from('idea_authors').select('author_id').eq('idea_id', id).maybeSingle()
+  const { data: author } = link ? await db.from('profiles').select('full_name, email').eq('id', link.author_id).single() : { data: null }
+  const name = author?.full_name || author?.email || 'Someone'
+  const dept = idea.department_id ? (await deptNames()).get(idea.department_id) : null
+  const body = p(`<strong>${esc(idea.title)}</strong>${dept ? ` · for ${esc(dept)}` : ''}`) +
+    (idea.body ? `<blockquote style="margin:12px 0;padding:10px 14px;border-left:4px solid #f59e0b;background:#fffbeb;white-space:pre-wrap" dir="auto">${esc(idea.body)}</blockquote>` : '') +
+    p(`Posted by ${esc(name)}${idea.anonymous ? ' — <em>without their name; colleagues only see “A colleague”. Keep it confidential.</em>' : ''}`)
+  const to = await emailsFor(['admin'], s.extra_recipients)
+  return send('idea', to, `💡 New idea: ${idea.title}`, layout('New idea shared', body, s.app_url, `/ideas/${id}`))
+}
+
+async function redemptionEmail(id: string) {
+  const s = await settings()
+  const { data: r } = await db.from('redemptions').select('*').eq('id', id).single()
+  if (!r) return { sent: false, reason: 'Not found' }
+  const [{ data: who }, { data: reward }] = await Promise.all([
+    db.from('profiles').select('full_name, email').eq('id', r.user_id).single(),
+    db.from('rewards').select('title, emoji').eq('id', r.reward_id).single(),
+  ])
+  const name = who?.full_name || who?.email || 'Someone'
+  const body = p(`${esc(name)} used <strong>${r.cost} points</strong> for ${esc(reward?.emoji ?? '🎁')} <strong>${esc(reward?.title ?? 'a reward')}</strong>.`) +
+    p('Please approve it and arrange the reward, or return the points, from Admin → Community.')
+  const to = await emailsFor(['admin'], s.extra_recipients)
+  return send('redemption', to, `🎁 Reward request from ${name}`, layout('Reward request', body, s.app_url, '/admin/community'))
+}
+
 async function reportEmail(id: string) {
   const s = await settings()
   if (!s.notify_reports) return { sent: false, reason: 'Turned off' }
@@ -265,6 +297,10 @@ Deno.serve(async (req) => {
         return json(await submissionEmail(payload.id!))
       case 'feedback':
         return json(await feedbackEmail(payload.id!))
+      case 'idea':
+        return json(await ideaEmail(payload.id!))
+      case 'redemption':
+        return json(await redemptionEmail(payload.id!))
       case 'report':
         return json(await reportEmail(payload.id!))
       case 'digest_tick':
