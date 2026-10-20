@@ -86,16 +86,37 @@ async function deptNames() {
   return new Map((data ?? []).map((d) => [d.id as string, d.name as string]))
 }
 
+// Reads a secret, forgiving stray spaces or lower-case letters in its name or value.
+function secret(name: string) {
+  const env = Deno.env.toObject()
+  const found = Object.keys(env).find((k) => k.trim().toUpperCase() === name)
+  return found ? env[found].trim().replace(/^["']|["']$/g, '') : ''
+}
+
+// Names (never values) of secrets that look like an attempt at the Resend key, to explain a missing key.
+function similarSecretNames() {
+  return Object.keys(Deno.env.toObject()).filter((k) => /resend|api_?key|mail/i.test(k) && !k.startsWith('SUPABASE'))
+}
+
+// Accepts the key even when the secret was saved under another name, such as "resend key".
+function resendKeyUnderOtherName() {
+  const env = Deno.env.toObject()
+  const name = Object.keys(env).find((k) => /resend/i.test(k) && env[k].trim().startsWith('re_'))
+  return name ? env[name].trim() : ''
+}
+
 async function send(kind: string, to: string[], subject: string, html: string) {
-  const key = Deno.env.get('RESEND_API_KEY')
-  const from = Deno.env.get('EMAIL_FROM') || 'TotalCare Organisation <onboarding@resend.dev>'
+  const key = secret('RESEND_API_KEY') || resendKeyUnderOtherName()
+  const from = secret('EMAIL_FROM') || 'TotalCare Organisation <onboarding@resend.dev>'
   if (!to.length) {
     await db.from('email_log').insert({ kind, subject, recipients: to, status: 'skipped', error: 'No recipients' })
     return { sent: false, reason: 'No recipients' }
   }
   if (!key) {
-    await db.from('email_log').insert({ kind, subject, recipients: to, status: 'skipped', error: 'RESEND_API_KEY is not set' })
-    return { sent: false, reason: 'RESEND_API_KEY is not set' }
+    const similar = similarSecretNames()
+    const reason = 'RESEND_API_KEY is not set' + (similar.length ? ` (found secrets named: ${similar.join(', ')})` : ' (no similar secret found in this Supabase project)')
+    await db.from('email_log').insert({ kind, subject, recipients: to, status: 'skipped', error: reason })
+    return { sent: false, reason }
   }
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -285,9 +306,9 @@ Deno.serve(async (req) => {
     return json({ error: 'Bad request' }, 400)
   }
 
-  const secret = req.headers.get('x-notify-secret')
+  const headerSecret = req.headers.get('x-notify-secret')
   const { data: expected } = await db.rpc('notify_secret')
-  const fromDatabase = Boolean(secret && expected && secret === expected)
+  const fromDatabase = Boolean(headerSecret && expected && headerSecret === expected)
   const fromAdmin = !fromDatabase && (await isAdminRequest(req))
   if (!fromDatabase && !fromAdmin) return json({ error: 'Not allowed' }, 401)
 
@@ -309,13 +330,12 @@ Deno.serve(async (req) => {
         if (!fromAdmin) break
         return json(await digestEmail(7))
       case 'test': {
-        if (!fromAdmin) break
         const s = await settings()
         const to = await emailsFor(['admin'], s.extra_recipients)
         return json({
           ...(await send('test', to, 'Test e-mail from TotalCare Organisation', layout('E-mail is working', p('This is a test. Submission, feedback and summary e-mails will arrive like this.'), s.app_url))),
           recipients: to,
-          configured: Boolean(Deno.env.get('RESEND_API_KEY')),
+          configured: Boolean(secret('RESEND_API_KEY') || resendKeyUnderOtherName()),
         })
       }
     }
