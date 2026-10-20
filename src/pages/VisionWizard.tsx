@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Lock, Send, Trash2 } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Lock, Send, Trash2, WifiOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useDirectory } from '../lib/useDirectory'
 import type { Submission } from '../lib/types'
@@ -22,17 +22,46 @@ import PrivacyNotice from '../components/PrivacyNotice'
 
 const LAST = WIZARD_STEPS.length - 1
 
+const isNetworkError = (m: string) => /failed to fetch|networkerror|load failed|network request failed|fetch failed/i.test(m) || !navigator.onLine
+
+function readBackup(key: string): Partial<Submission> | null {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as Partial<Submission>) : null
+  } catch {
+    return null
+  }
+}
+function writeBackup(key: string, patch: Partial<Submission>) {
+  try {
+    localStorage.setItem(key, JSON.stringify(patch))
+  } catch {
+    /* storage full or blocked: the in-memory copy still retries */
+  }
+}
+function clearBackup(key: string) {
+  try {
+    localStorage.removeItem(key)
+  } catch {
+    /* ignore */
+  }
+}
+
 export default function VisionWizard() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { departments } = useDirectory()
   const [sub, setSub] = useState<Submission | null>(null)
   const [step, setStep] = useState(0)
-  const [error, setError] = useState<string | null>(null)
-  const [saveState, setSaveState] = useState<'saved' | 'saving' | 'dirty'>('saved')
+  const [error, setError] = useState<string | null>(null) // could not open the draft at all
+  const [saveError, setSaveError] = useState<string | null>(null) // a save failed; work is kept and retried
+  const [saveState, setSaveState] = useState<'saved' | 'saving' | 'dirty' | 'offline'>('saved')
   const [done, setDone] = useState(false)
   const pending = useRef<Partial<Submission>>({})
   const timer = useRef<number | undefined>(undefined)
+  const inFlight = useRef<Promise<boolean> | null>(null)
+  const retries = useRef(0)
+  const backupKey = `tc-draft-${id}`
 
   useEffect(() => {
     supabase
@@ -41,47 +70,92 @@ export default function VisionWizard() {
       .eq('id', id!)
       .single()
       .then(({ data, error }) => {
-        if (error) return setError(error.message)
-        const s = data as Submission
+        if (error) return setError(isNetworkError(error.message) ? 'No connection. Check your internet and reload the page.' : error.message)
+        let s = data as Submission
+        // Changes that could not reach the server last time are kept on this device; put them back.
+        const backup = readBackup(backupKey)
+        if (backup && s.status === 'draft') {
+          s = { ...s, ...backup }
+          pending.current = backup
+          setSaveState('dirty')
+          timer.current = window.setTimeout(() => void flush(), 500)
+        }
         setSub(s)
         setStep(s.status === 'submitted' ? LAST : Math.min(s.current_step ?? 0, LAST))
       })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  // Warn before leaving with unsaved changes.
+  // Warn before leaving with unsaved changes; retry as soon as the connection comes back.
   useEffect(() => {
     const onUnload = (e: BeforeUnloadEvent) => {
       if (Object.keys(pending.current).length) e.preventDefault()
     }
+    const onOnline = () => void flush()
     window.addEventListener('beforeunload', onUnload)
-    return () => window.removeEventListener('beforeunload', onUnload)
+    window.addEventListener('online', onOnline)
+    return () => {
+      window.removeEventListener('beforeunload', onUnload)
+      window.removeEventListener('online', onOnline)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const deptName = useMemo(() => new Map(departments.map((d) => [d.id, d.name])), [departments])
   const locked = sub?.status === 'submitted'
 
-  async function flush() {
+  // One save at a time; failed saves are merged back and retried with growing delays.
+  async function flush(): Promise<boolean> {
     window.clearTimeout(timer.current)
+    if (inFlight.current) {
+      await inFlight.current
+      if (!Object.keys(pending.current).length) return true
+    }
     const patch = pending.current
     pending.current = {}
     if (Object.keys(patch).length === 0) return true
     setSaveState('saving')
-    const { error } = await supabase.from('submissions').update(patch).eq('id', id!)
-    if (error) {
-      setError(error.message)
-      pending.current = { ...patch, ...pending.current }
-      setSaveState('dirty')
-      return false
-    }
-    setSaveState(Object.keys(pending.current).length ? 'dirty' : 'saved')
-    return true
+    const run = (async () => {
+      let message: string | null = null
+      try {
+        const { error } = await supabase.from('submissions').update(patch).eq('id', id!)
+        message = error?.message ?? null
+      } catch (e) {
+        message = String(e)
+      }
+      if (message) {
+        pending.current = { ...patch, ...pending.current }
+        writeBackup(backupKey, pending.current)
+        const offline = isNetworkError(message)
+        setSaveState(offline ? 'offline' : 'dirty')
+        setSaveError(offline ? 'Connection lost — your work is kept on this device and will be saved automatically.' : `Could not save: ${message}`)
+        retries.current += 1
+        timer.current = window.setTimeout(() => void flush(), Math.min(30000, 1000 * 2 ** retries.current))
+        return false
+      }
+      retries.current = 0
+      setSaveError(null)
+      if (Object.keys(pending.current).length) {
+        writeBackup(backupKey, pending.current)
+        setSaveState('dirty')
+      } else {
+        clearBackup(backupKey)
+        setSaveState('saved')
+      }
+      return true
+    })()
+    inFlight.current = run
+    const ok = await run
+    inFlight.current = null
+    return ok
   }
 
   function change(patch: Partial<Submission>) {
     if (locked) return
     setSub((s) => (s ? { ...s, ...patch } : s))
     pending.current = { ...pending.current, ...patch }
-    setSaveState('dirty')
+    writeBackup(backupKey, pending.current)
+    setSaveState((v) => (v === 'offline' ? v : 'dirty'))
     window.clearTimeout(timer.current)
     timer.current = window.setTimeout(() => void flush(), 1000)
   }
@@ -96,8 +170,15 @@ export default function VisionWizard() {
 
   async function submit() {
     if (!(await flush())) return
-    const { error } = await supabase.from('submissions').update({ status: 'submitted', current_step: LAST }).eq('id', id!)
-    if (error) return setError(error.message)
+    let message: string | null = null
+    try {
+      const { error } = await supabase.from('submissions').update({ status: 'submitted', current_step: LAST }).eq('id', id!)
+      message = error?.message ?? null
+    } catch (e) {
+      message = String(e)
+    }
+    if (message) return setSaveError(isNetworkError(message) ? 'No connection — please check your internet and press Send again. Nothing was lost.' : `Could not send: ${message}`)
+    clearBackup(backupKey)
     setSub((s) => (s ? { ...s, status: 'submitted' } : s))
     setDone(true)
   }
@@ -107,11 +188,12 @@ export default function VisionWizard() {
     window.clearTimeout(timer.current)
     pending.current = {}
     const { error } = await supabase.from('submissions').delete().eq('id', id!)
-    if (error) setError(error.message)
-    else navigate('/vision')
+    if (error) return setSaveError(isNetworkError(error.message) ? 'No connection — try deleting again in a moment.' : error.message)
+    clearBackup(backupKey)
+    navigate('/vision')
   }
 
-  if (error) return <div className="page"><p className="error">{error}</p></div>
+  if (error) return <div className="page"><p className="error">{error}</p><button type="button" onClick={() => location.reload()}>Try again</button></div>
   if (!sub) return <div className="page"><p className="muted">Loading…</p></div>
 
   if (done) {
@@ -140,9 +222,15 @@ export default function VisionWizard() {
         <div className="row between">
           <Link to="/vision" className="link"><ArrowLeft size={15} /> My submissions</Link>
           <span className="muted small save-state">
-            {locked ? <><Lock size={13} /> Submitted {sub.submitted_at && new Date(sub.submitted_at).toLocaleDateString()}</> : saveState === 'saved' ? <><Check size={13} /> Saved</> : saveState === 'saving' ? 'Saving…' : 'Unsaved changes'}
+            {locked ? <><Lock size={13} /> Submitted {sub.submitted_at && new Date(sub.submitted_at).toLocaleDateString()}</> : saveState === 'saved' ? <><Check size={13} /> Saved</> : saveState === 'saving' ? 'Saving…' : saveState === 'offline' ? <><WifiOff size={13} /> Offline — kept on this device</> : 'Unsaved changes'}
           </span>
         </div>
+        {saveError && (
+          <div className="save-banner" role="status">
+            <WifiOff size={16} /> <span className="grow">{saveError}</span>
+            <button type="button" className="small-btn secondary" onClick={() => { retries.current = 0; void flush() }}>Retry now</button>
+          </div>
+        )}
         <div className="progress"><div className="progress-bar" style={{ width: `${progress}%` }} /></div>
         <ol className="stepper">
           {WIZARD_STEPS.map((s, i) => (

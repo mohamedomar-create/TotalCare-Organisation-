@@ -861,3 +861,5 @@ body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+.save-banner { display: flex; align-items: center; gap: 10px; margin: 8px 0; padding: 10px 14px; border-radius: 12px; background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; font-size: 0.9rem; animation: fadeIn 0.2s; }
+.save-banner .small-btn { flex-shrink: 0; }

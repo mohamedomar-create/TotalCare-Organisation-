@@ -67,9 +67,9 @@ export const CATALOGUE: CatalogueRole[] = [
   { key: 'deputy', en: 'Deputy MD', ar: 'نائب العضو المنتدب', dept: TOP, layer: 1 },
 
   { key: 'sales_mgr', en: 'Sales Manager', ar: 'مدير المبيعات', dept: 'sales', layer: 2, suggested: 1 },
-  { key: 'sales_sup', en: 'Sales Supervisor', ar: 'مشرف مبيعات', dept: 'sales', layer: 3, suggested: 1 },
+  { key: 'sales_sup', en: 'Area Manager', ar: 'مدير منطقة', dept: 'sales', layer: 3, suggested: 1 },
   { key: 'tender', en: 'Tender Specialist', ar: 'أخصائي مناقصات', dept: 'sales', layer: 4 },
-  { key: 'rep', en: 'Sales Rep', ar: 'مندوب مبيعات', dept: 'sales', layer: 4, suggested: 3 },
+  { key: 'rep', en: 'Sales Specialist', ar: 'أخصائي مبيعات', dept: 'sales', layer: 4, suggested: 3 },
   { key: 'sales_coord', en: 'Sales Coordinator', ar: 'منسق مبيعات', dept: 'sales', layer: 4 },
 
   { key: 'mkt_mgr', en: 'Marketing Manager', ar: 'مدير التسويق', dept: 'mkt', layer: 2, suggested: 1 },
