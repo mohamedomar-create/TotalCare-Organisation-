@@ -23,7 +23,8 @@ An internal staff hub for TotalCare Egypt, where people share ideas, thank each 
   6. Ideas: your top 3 ideas, one thing to change tomorrow, and an eNPS score.
   7. Check and send.
 - **Send feedback**: a button on every page that sends a quick idea, problem, question or praise to the admin.
-- **Admin dashboard**: response rate, eNPS, average pulse scores, top challenges, a department filter and CSV export.
+- **Executive dashboard**: participation, a 0–100 health index, eNPS, auto-written key findings, health by area, a department × area heat map, biggest problems, survey trend, the ideas pipeline, period and department filters, CSV export and print/PDF.
+- **Survey control**: one survey per person by default. The admin can open a new round for everyone, give one person +1 on the Users page, or reset all data.
 - **Admin inbox**: every submission and feedback note, with unread badges, search, review status and private notes.
 - **Org chart and directory** showing departments, reporting lines and contacts.
 - **Reports for management**: anonymised summaries with charts, published by the admin.

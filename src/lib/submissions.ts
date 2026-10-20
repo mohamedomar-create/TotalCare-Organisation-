@@ -31,3 +31,19 @@ export async function createSubmission() {
   if (error) throw new Error(error.message)
   return data.id as string
 }
+
+// How many surveys this person may start (set by the admin) and how many they already have.
+export function useAllowance(userId: string | undefined) {
+  const [allowance, setAllowance] = useState<{ allowed: number; used: number } | null>(null)
+  const reload = useCallback(async () => {
+    if (!userId) return
+    const { data } = await supabase.rpc('my_submission_allowance')
+    const row = (Array.isArray(data) ? data[0] : data) as { allowed: number; used: number } | null
+    setAllowance(row ? { allowed: Number(row.allowed), used: Number(row.used) } : null)
+  }, [userId])
+  useEffect(() => {
+    void reload()
+  }, [reload])
+  // Unknown (still loading or offline) counts as allowed; the database has the final say.
+  return { allowance, canStart: !allowance || allowance.used < allowance.allowed, reload }
+}

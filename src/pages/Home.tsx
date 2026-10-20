@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useDirectory } from '../lib/useDirectory'
 import { useIdeas } from '../lib/useIdeas'
-import { createSubmission, useMySubmissions } from '../lib/submissions'
+import { createSubmission, useAllowance, useMySubmissions } from '../lib/submissions'
 import { WIZARD_STEPS } from '../lib/survey'
 import { levelFor, timeAgo, useMyPoints, useStaff, type Announcement, type Kudos } from '../lib/community'
 import FeedbackButton from '../components/FeedbackButton'
@@ -36,6 +36,7 @@ export default function Home() {
   const { departments } = useDirectory()
   const staffList = useStaff()
   const { items } = useMySubmissions(session?.user.id)
+  const { canStart } = useAllowance(session?.user.id)
   const { balance, earned } = useMyPoints(session?.user.id)
   const { ideas, myVotes, reload, toggleVote } = useIdeas(session?.user.id)
   const [news, setNews] = useState<Announcement[]>([])
@@ -67,6 +68,7 @@ export default function Home() {
 
   async function startSurvey() {
     if (draft) return navigate(`/vision/${draft.id}`)
+    if (!canStart) return navigate('/vision')
     navigate(`/vision/${await createSubmission()}`)
   }
 
@@ -105,8 +107,8 @@ export default function Home() {
         </button>
         <button type="button" className="action-card a-survey rise" onClick={startSurvey}>
           <ClipboardList size={26} />
-          <strong>{draft ? `Continue survey (step ${(draft.current_step ?? 0) + 1}/${WIZARD_STEPS.length})` : sent ? 'Share your view again' : 'Shape TotalCare'}</strong>
-          <small lang="ar">{draft ? 'كمّل الاستبيان' : 'شارك رأيك في التنظيم'}</small>
+          <strong>{draft ? `Continue survey (step ${(draft.current_step ?? 0) + 1}/${WIZARD_STEPS.length})` : sent && !canStart ? 'Your view is sent ✓' : sent ? 'Share your view again' : 'Shape TotalCare'}</strong>
+          <small lang="ar">{draft ? 'كمّل الاستبيان' : sent && !canStart ? 'شكراً — رأيك وصل' : 'شارك رأيك في التنظيم'}</small>
           {!sent && <span className="action-pts">+50</span>}
         </button>
         <div className="action-card a-speak rise">
