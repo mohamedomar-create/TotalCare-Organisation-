@@ -5,7 +5,7 @@ import { GROUPABLE_TYPES, fieldByKey, isNumeric, moduleById } from './schema'
 import { ROLES } from './roles'
 import { formulaRefs } from './formula'
 
-export type Tab = 'modules' | 'pipelines' | 'reports' | 'automations' | 'roles' | 'settings'
+export type Tab = 'modules' | 'pipelines' | 'reports' | 'automations' | 'rules' | 'roles' | 'settings'
 
 export interface Issue {
   level: 'error' | 'warning'
@@ -45,6 +45,19 @@ export function fieldDependents(schema: AppSchema, mod: ModuleDef, key: string):
     }
   }
   for (const s of mod.stages ?? []) if (s.requires?.includes(key)) out.push(`stage “${s.name}” requires it`)
+  for (const f of mod.fields) {
+    if (f.showIf?.field === key && f.key !== key) out.push(`“${f.label}” is shown only when it has a value`)
+    if (f.lookup?.via === key) out.push(`lookup “${f.label}” goes through it`)
+  }
+  for (const m of schema.modules) {
+    for (const f of m.fields) {
+      if (f.lookup && fieldByKey(m, f.lookup.via)?.target === mod.id && f.lookup.field === key) out.push(`lookup “${f.label}” in ${m.name} shows it`)
+      if (f.rollup && f.rollup.module === mod.id && (f.rollup.via === key || f.rollup.field === key)) out.push(`rollup “${f.label}” in ${m.name} uses it`)
+    }
+  }
+  for (const r of mod.rules ?? []) if (r.check.field === key || r.when.some((w) => w.field === key)) out.push(`validation rule “${r.message}” uses it`)
+  for (const r of mod.scoring ?? []) if (r.condition.field === key) out.push('a scoring rule uses it')
+  for (const a of schema.approvals ?? []) if (a.module === mod.id && a.conditions.some((c) => c.field === key)) out.push(`approval “${a.name}” uses it`)
   for (const r of schema.reports) {
     if (r.module !== mod.id) continue
     if (r.groupBy === key || r.measure.field === key || r.filters.some((x) => x.field === key)) out.push(`report “${r.name}” uses it`)
@@ -66,6 +79,8 @@ export function moduleDependents(schema: AppSchema, mod: ModuleDef): string[] {
   }
   for (const r of schema.reports) if (r.module === mod.id) out.push(`report “${r.name}”`)
   for (const w of schema.workflows) if (w.module === mod.id) out.push(`automation “${w.name}”`)
+  for (const a of schema.approvals ?? []) if (a.module === mod.id) out.push(`approval “${a.name}”`)
+  for (const m of schema.modules) for (const f of m.fields) if (f.rollup?.module === mod.id && m.id !== mod.id) out.push(`rollup “${f.label}” in ${m.name}`)
   return out
 }
 
@@ -101,6 +116,24 @@ function checkField(schema: AppSchema, m: ModuleDef, f: FieldDef, issues: Issue[
     }
   }
   if (f.min !== undefined && f.max !== undefined && f.min > f.max) issues.push({ level: 'error', message: `“${f.label}”: minimum is bigger than maximum`, ...at })
+  if (f.type === 'lookup') {
+    const via = fieldByKey(m, f.lookup?.via)
+    const target = via?.type === 'relation' ? moduleById(schema, via.target ?? '') : undefined
+    if (!f.lookup || !via || via.type !== 'relation') issues.push({ level: 'error', message: `Lookup “${f.label}” in “${m.name}”: choose a link field to look through`, ...at })
+    else if (!target || !fieldByKey(target, f.lookup.field)) issues.push({ level: 'error', message: `Lookup “${f.label}” shows a field that no longer exists`, ...at })
+  }
+  if (f.type === 'rollup') {
+    const child = f.rollup ? moduleById(schema, f.rollup.module) : undefined
+    const via = fieldByKey(child, f.rollup?.via)
+    if (!f.rollup || !child) issues.push({ level: 'error', message: `Rollup “${f.label}” in “${m.name}”: choose which records to add up`, ...at })
+    else if (!via || via.type !== 'relation' || via.target !== m.id) issues.push({ level: 'error', message: `Rollup “${f.label}”: “${child.name}” must link to ${m.name} through the chosen field`, ...at })
+    else if (f.rollup.op !== 'count' && !isNumeric(fieldByKey(child, f.rollup.field))) issues.push({ level: 'error', message: `Rollup “${f.label}”: choose a number field to ${f.rollup.op}`, ...at })
+  }
+  if (f.showIf) {
+    if (f.showIf.field === f.key) issues.push({ level: 'error', message: `“${f.label}” can’t depend on itself`, ...at })
+    else if (!fieldByKey(m, f.showIf.field)) issues.push({ level: 'error', message: `“${f.label}” is shown based on a field that no longer exists`, ...at })
+    if (f.system && f.required) issues.push({ level: 'error', message: `“${f.label}” is required by the system, so it must always be shown`, ...at })
+  }
 }
 
 function formulaCycles(m: ModuleDef, issues: Issue[]) {
@@ -158,6 +191,15 @@ export function validate(schema: AppSchema): Issue[] {
     if (m.fields.length > 60) issues.push({ level: 'warning', message: `“${m.name}” has ${m.fields.length} fields. Long forms slow your team down — consider a second module.`, tab: 'modules', moduleId: m.id })
     for (const f of m.fields) checkField(schema, m, f, issues)
     formulaCycles(m, issues)
+    for (const r of m.rules ?? []) {
+      const at = { tab: 'rules' as const, moduleId: m.id, itemId: r.id }
+      if (!r.message.trim()) issues.push({ level: 'error', message: `A validation rule in “${m.name}” has no message`, ...at })
+      for (const fl of [r.check, ...r.when]) if (!fieldByKey(m, fl.field)) issues.push({ level: 'error', message: `Validation rule “${r.message}” uses a field that no longer exists`, ...at })
+    }
+    for (const r of m.scoring ?? []) {
+      if (!fieldExists(m, r.condition.field)) issues.push({ level: 'error', message: `A scoring rule in “${m.name}” uses a field that no longer exists`, tab: 'rules', moduleId: m.id, itemId: r.id })
+      if (!Number.isFinite(r.points)) issues.push({ level: 'error', message: `A scoring rule in “${m.name}” needs points`, tab: 'rules', moduleId: m.id, itemId: r.id })
+    }
 
     if (m.stages) {
       const at = { tab: 'pipelines' as const, moduleId: m.id }
@@ -246,6 +288,20 @@ export function validate(schema: AppSchema): Issue[] {
         }
       }
     }
+  }
+
+  for (const a of schema.approvals ?? []) {
+    const at = { tab: 'rules' as const, itemId: a.id }
+    const m = moduleById(schema, a.module)
+    if (!m) {
+      issues.push({ level: 'error', message: `Approval “${a.name}” uses a module that no longer exists`, ...at })
+      continue
+    }
+    if (!a.name.trim()) issues.push({ level: 'error', message: 'An approval rule has no name', ...at })
+    if (!schema.roles.some((r) => r.id === a.approverRole)) issues.push({ level: 'error', message: `Approval “${a.name}”: choose who approves`, ...at })
+    if (a.action === 'post' && m.role !== 'invoices' && m.role !== 'purchases') issues.push({ level: 'error', message: `Approval “${a.name}”: only invoices and purchase bills are posted`, ...at })
+    if (a.action === 'stage' && !m.stages?.some((s) => s.id === a.stage)) issues.push({ level: 'error', message: `Approval “${a.name}”: choose a stage of ${m.name}`, ...at })
+    for (const c of a.conditions) if (!fieldExists(m, c.field)) issues.push({ level: 'error', message: `Approval “${a.name}” checks a field that no longer exists`, ...at })
   }
 
   const admins = schema.roles.filter((r) => r.admin)

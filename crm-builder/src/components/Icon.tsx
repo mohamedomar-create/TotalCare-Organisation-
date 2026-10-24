@@ -1,5 +1,5 @@
 import {
-  AlignLeft, Award, Banknote, BarChart3, Boxes, Briefcase, Building, Building2, Calendar, CalendarClock, CheckCircle2, CheckSquare, ClipboardList, Cog,
+  AlignLeft, Award, Banknote, Calculator, Eye, BarChart3, Boxes, Briefcase, Building, Building2, Calendar, CalendarClock, CheckCircle2, CheckSquare, ClipboardList, Cog,
   Droplets, EyeOff, Factory, FileSpreadsheet, FileText, FolderKanban, GraduationCap, Handshake, HardHat, Hash, HeartPulse, Home, Hourglass, Layers,
   LifeBuoy, Link, ListChecks, Magnet, Mail, MailQuestion, Map, MapPin, MessageCircleWarning, Network, Package, PackageX, Percent, Phone, Receipt,
   ShieldCheck, ShoppingBag, ShoppingCart, Sigma, Sparkles, Star, Store, Tags, Target, Timer, Truck, Type, UserRound, Users, Users2, UserX, Wrench,
@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 
 export const ICONS: Record<string, LucideIcon> = {
-  AlignLeft, Award, Banknote, BarChart3, Boxes, Briefcase, Building, Building2, Calendar, CalendarClock, CheckCircle2, CheckSquare, ClipboardList, Cog,
+  AlignLeft, Award, Banknote, Calculator, Eye, BarChart3, Boxes, Briefcase, Building, Building2, Calendar, CalendarClock, CheckCircle2, CheckSquare, ClipboardList, Cog,
   Droplets, EyeOff, Factory, FileSpreadsheet, FileText, FolderKanban, GraduationCap, Handshake, HardHat, Hash, HeartPulse, Home, Hourglass, Layers,
   LifeBuoy, Link, ListChecks, Magnet, Mail, MailQuestion, Map, MapPin, MessageCircleWarning, Network, Package, PackageX, Percent, Phone, Receipt,
   ShieldCheck, ShoppingBag, ShoppingCart, Sigma, Sparkles, Star, Store, Tags, Target, Timer, Truck, Type, UserRound, Users, Users2, UserX, Wrench,

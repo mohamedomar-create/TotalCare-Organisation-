@@ -43,6 +43,18 @@ export default function ModulesTab({ focus, setFocus }: Props) {
       const field = newField(type, mod.fields.map((f) => f.key))
       if (type === 'relation') field.target = schema.modules.find((m) => m.id !== mod.id)?.id
       if (type === 'formula') field.formula = mod.fields.filter((f) => isNumeric(f)).slice(0, 2).map((f) => f.key).join(' * ')
+      if (type === 'lookup') {
+        const via = mod.fields.find((f) => f.type === 'relation')
+        const target = schema.modules.find((m) => m.id === via?.target)
+        field.lookup = { via: via?.key ?? '', field: target?.fields.find((f) => f.key !== target.titleField)?.key ?? target?.titleField ?? '' }
+        field.label = target ? `${target.singular} ${target.fields.find((f) => f.key === field.lookup!.field)?.label.toLowerCase() ?? ''}`.trim() : 'Lookup'
+      }
+      if (type === 'rollup') {
+        const child = schema.modules.find((m) => m.id !== mod.id && m.fields.some((f) => f.type === 'relation' && f.target === mod.id))
+        const via = child?.fields.find((f) => f.type === 'relation' && f.target === mod.id)
+        field.rollup = { module: child?.id ?? '', via: via?.key ?? '', op: 'count' }
+        field.label = child ? `Number of ${child.name.toLowerCase()}` : 'Rollup'
+      }
       editMod((m) => {
         const idx = m.fields.findIndex((f) => f.id === over.id)
         m.fields.splice(idx < 0 ? m.fields.length : idx, 0, field)
@@ -146,13 +158,14 @@ function FieldCard({ field, selected, title, onSelect }: { field: FieldDef; sele
         <span className="tags">
           {title && <span className="pill gray tiny">Title</span>}
           {field.readOnly && <span className="pill amber tiny">Auto</span>}
+          {field.showIf && <span className="pill tiny">If</span>}
           {field.system && <Lock size={12} className="lock" />}
         </span>
       </div>
       <div className="fake">
         {field.type === 'select' || field.type === 'multiselect' ? (
           <>{field.options?.slice(0, 3).map((o) => <span key={o.value} className="pill tiny" style={{ background: o.color + '22', color: o.color }}>{o.label}</span>)}<ChevronDown size={14} style={{ marginInlineStart: 'auto' }} /></>
-        ) : field.type === 'checkbox' ? '☐ Yes / No' : field.type === 'formula' ? <span className="mono tiny">= {field.formula || '…'}</span> : field.type === 'rating' ? '★★★★★' : field.type === 'longtext' ? 'Notes…' : field.readOnly ? 'Calculated by the system' : info.hint}
+        ) : field.type === 'lookup' || field.type === 'rollup' ? <span className="tiny">{field.type === 'lookup' ? 'From the linked record' : 'Calculated from linked records'}{field.showIf ? ' · conditional' : ''}</span> : field.type === 'checkbox' ? '☐ Yes / No' : field.type === 'formula' ? <span className="mono tiny">= {field.formula || '…'}</span> : field.type === 'rating' ? '★★★★★' : field.type === 'longtext' ? 'Notes…' : field.readOnly ? 'Calculated by the system' : info.hint}
       </div>
     </div>
   )
@@ -231,7 +244,7 @@ function FieldProps({ mod, field, onClose }: { mod: ModuleDef; field: FieldDef; 
         <button type="button" className={field.width !== 2 ? 'on' : ''} onClick={() => set({ width: 1 })}>Half width</button>
         <button type="button" className={field.width === 2 ? 'on' : ''} onClick={() => set({ width: 2 })}>Full width</button>
       </div>
-      {!field.readOnly && field.type !== 'formula' && (
+      {!field.readOnly && !['formula', 'lookup', 'rollup'].includes(field.type) && (
         <label className="inline"><input type="checkbox" checked={Boolean(field.required)} disabled={field.system && field.required} onChange={(e) => set({ required: e.target.checked })} /> Required</label>
       )}
       {['text', 'email', 'phone'].includes(field.type) && (
@@ -262,6 +275,105 @@ function FieldProps({ mod, field, onClose }: { mod: ModuleDef; field: FieldDef; 
             const label = `Option ${(field.options?.length ?? 0) + 1}`
             set({ options: [...(field.options ?? []), { value: `${slugKey(label)}_${uid('o').slice(-4)}`, label, color: PALETTE[(field.options?.length ?? 0) % PALETTE.length] }] })
           }}><Plus size={14} /> Add option</button>
+        </>
+      )}
+
+      {field.type === 'lookup' && (
+        <>
+          <hr />
+          <b>Lookup</b>
+          <label className="field">Through link
+            <select value={field.lookup?.via ?? ''} onChange={(e) => set({ lookup: { via: e.target.value, field: '' } })}>
+              <option value="">—</option>
+              {mod.fields.filter((f) => f.type === 'relation').map((f) => <option key={f.id} value={f.key}>{f.label}</option>)}
+            </select>
+          </label>
+          {(() => {
+            const target = schema.modules.find((m) => m.id === mod.fields.find((f) => f.key === field.lookup?.via)?.target)
+            return target ? (
+              <label className="field">Show {target.singular.toLowerCase()}’s
+                <select value={field.lookup?.field ?? ''} onChange={(e) => set({ lookup: { via: field.lookup!.via, field: e.target.value } })}>
+                  <option value="">—</option>
+                  {target.fields.map((f) => <option key={f.id} value={f.key}>{f.label}</option>)}
+                </select>
+              </label>
+            ) : null
+          })()}
+        </>
+      )}
+
+      {field.type === 'rollup' && (() => {
+        const children = schema.modules.filter((m) => m.fields.some((f) => f.type === 'relation' && f.target === mod.id))
+        const child = schema.modules.find((m) => m.id === field.rollup?.module)
+        const r = field.rollup ?? { module: '', via: '', op: 'count' as const }
+        return (
+          <>
+            <hr />
+            <b>Rollup</b>
+            <label className="field">Add up records from
+              <select value={r.module} onChange={(e) => {
+                const m = schema.modules.find((x) => x.id === e.target.value)
+                set({ rollup: { module: e.target.value, via: m?.fields.find((f) => f.type === 'relation' && f.target === mod.id)?.key ?? '', op: 'count' } })
+              }}>
+                <option value="">—</option>
+                {children.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </label>
+            {child && (
+              <>
+                <label className="field">Linked through
+                  <select value={r.via} onChange={(e) => set({ rollup: { ...r, via: e.target.value } })}>
+                    {child.fields.filter((f) => f.type === 'relation' && f.target === mod.id).map((f) => <option key={f.id} value={f.key}>{f.label}</option>)}
+                  </select>
+                </label>
+                <div className="form-grid">
+                  <label className="field">Calculation
+                    <select value={r.op} onChange={(e) => set({ rollup: { ...r, op: e.target.value as typeof r.op, field: e.target.value === 'count' ? undefined : r.field ?? child.fields.find((f) => isNumeric(f))?.key } })}>
+                      <option value="count">Count</option><option value="sum">Sum</option><option value="avg">Average</option><option value="min">Lowest</option><option value="max">Highest</option>
+                    </select>
+                  </label>
+                  {r.op !== 'count' && (
+                    <label className="field">Of
+                      <select value={r.field ?? ''} onChange={(e) => set({ rollup: { ...r, field: e.target.value } })}>
+                        {child.fields.filter((f) => isNumeric(f)).map((f) => <option key={f.id} value={f.key}>{f.label}</option>)}
+                      </select>
+                    </label>
+                  )}
+                </div>
+              </>
+            )}
+            {children.length === 0 && <div className="note small">No module links to {mod.name} yet. Add a “Link to record” field in another module first.</div>}
+          </>
+        )
+      })()}
+
+      {!(field.system && field.required) && (
+        <>
+          <hr />
+          <label className="inline"><input type="checkbox" checked={Boolean(field.showIf)} onChange={(e) => set({ showIf: e.target.checked ? { field: mod.fields.find((f) => f.id !== field.id && (f.type === 'select' || f.type === 'checkbox'))?.key ?? mod.fields.find((f) => f.id !== field.id)!.key, op: 'notempty' } : undefined })} /> Show only when…</label>
+          {field.showIf && (() => {
+            const cond = field.showIf
+            const src = mod.fields.find((f) => f.key === cond.field)
+            return (
+              <div className="stack" style={{ gap: 6 }}>
+                <select value={cond.field} onChange={(e) => set({ showIf: { field: e.target.value, op: 'notempty' } })}>
+                  {mod.fields.filter((f) => f.id !== field.id && f.type !== 'lookup' && f.type !== 'rollup').map((f) => <option key={f.id} value={f.key}>{f.label}</option>)}
+                </select>
+                <div className="row" style={{ gap: 6 }}>
+                  <select value={cond.op} style={{ width: 'auto' }} onChange={(e) => set({ showIf: { ...cond, op: e.target.value as typeof cond.op } })}>
+                    <option value="eq">is</option><option value="neq">is not</option><option value="notempty">is filled</option><option value="empty">is empty</option><option value="gt">greater than</option><option value="lt">less than</option><option value="contains">contains</option>
+                  </select>
+                  {!['empty', 'notempty'].includes(cond.op) && (src?.options || src?.type === 'checkbox' ? (
+                    <select value={cond.value ?? ''} style={{ width: 'auto' }} onChange={(e) => set({ showIf: { ...cond, value: e.target.value } })}>
+                      <option value="">—</option>
+                      {src?.type === 'checkbox' ? <><option value="true">Yes</option><option value="false">No</option></> : src!.options!.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  ) : <input value={cond.value ?? ''} onChange={(e) => set({ showIf: { ...cond, value: e.target.value } })} style={{ width: 120 }} />)}
+                </div>
+                <span className="tiny muted">Hidden fields are not required. Like layout rules in Zoho and Odoo.</span>
+              </div>
+            )
+          })()}
         </>
       )}
 

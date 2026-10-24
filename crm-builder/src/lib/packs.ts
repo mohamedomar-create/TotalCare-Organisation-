@@ -115,3 +115,59 @@ export function buildRoles(schema: AppSchema, teams: TeamInput[]): RoleDef[] {
   }
   return roles
 }
+
+/** Competitor-grade smart defaults: rollups, lookups, scoring, rotting and approval rules. */
+export function addSmartDefaults(schema: AppSchema) {
+  const accounts = moduleByRole(schema, 'accounts')
+  const invoices = moduleByRole(schema, 'invoices')
+  const deals = moduleByRole(schema, 'deals')
+  const leads = moduleByRole(schema, 'leads')
+  const purchases = moduleByRole(schema, 'purchases')
+  const tickets = moduleByRole(schema, 'tickets')
+
+  // Deal rotting (Pipedrive): flag records that sit too long in an open stage.
+  for (const [m, days] of [[leads, 3], [deals, 14], [tickets, 2]] as const) {
+    for (const st of m?.stages ?? []) if (st.type === 'open' && st.rotDays === undefined) st.rotDays = days
+  }
+
+  // Rollups on customers (Airtable/Attio): totals from linked records, always up to date.
+  if (accounts) {
+    const add = (label: string, key: string, module: string, via: string, op: 'sum' | 'count', field?: string) => {
+      if (!accounts.fields.some((f) => f.key === key)) accounts.fields.push({ id: uid('f'), key, label, type: 'rollup', width: 1, inList: false, rollup: { module, via, op, field }, help: 'Calculated from linked records' })
+    }
+    if (invoices) {
+      add('Total invoiced', 'total_invoiced', invoices.id, 'customer', 'sum', 'total')
+      add('Balance due', 'balance_due', invoices.id, 'customer', 'sum', 'balance')
+    }
+    if (deals) add('Number of deals', 'deal_count', deals.id, 'account', 'count')
+  }
+
+  // Lookup on deals: show the customer's governorate without retyping it.
+  const gov = accounts?.fields.find((f) => f.key === 'governorate')
+  if (deals && gov && !deals.fields.some((f) => f.key === 'customer_governorate')) {
+    deals.fields.push({ id: uid('f'), key: 'customer_governorate', label: 'Customer governorate', type: 'lookup', width: 1, lookup: { via: 'account', field: 'governorate' } })
+  }
+
+  // Lead scoring (HubSpot): hot leads rise to the top.
+  if (leads && !leads.scoring) {
+    const rules: { field: string; op: 'eq' | 'notempty' | 'gt'; value?: string; points: number }[] = [
+      { field: 'source', op: 'eq', value: 'referral', points: 25 },
+      { field: 'source', op: 'eq', value: 'exhibition', points: 15 },
+      { field: 'email', op: 'notempty', points: 10 },
+      { field: 'company', op: 'notempty', points: 10 },
+    ]
+    if (leads.fields.some((f) => f.key === 'budget')) rules.push({ field: 'budget', op: 'gt', value: '500000', points: 30 })
+    leads.scoring = rules.filter((r) => leads.fields.some((f) => f.key === r.field)).map((r) => ({ id: uid('sc'), condition: { field: r.field, op: r.op, value: r.value }, points: r.points }))
+  }
+
+  // Validation rule (Salesforce/Zoho): a deal must be worth something.
+  if (deals && !deals.rules) deals.rules = [{ id: uid('vr'), when: [], check: { field: 'amount', op: 'gt', value: '0' }, message: 'Deal amount must be more than 0' }]
+
+  // Approval rules (Odoo): large documents need a manager's sign-off.
+  const manager = schema.roles.find((r) => !r.admin && /manag|owner|director|مدير/i.test(r.name))
+  if (manager && !schema.approvals?.length) {
+    schema.approvals = []
+    if (invoices) schema.approvals.push({ id: uid('ap'), name: 'Large invoice', module: invoices.id, action: 'post', conditions: [{ field: 'total', op: 'gt', value: '250000' }], approverRole: manager.id })
+    if (purchases) schema.approvals.push({ id: uid('ap'), name: 'Large purchase', module: purchases.id, action: 'post', conditions: [{ field: 'total', op: 'gt', value: '100000' }], approverRole: manager.id })
+  }
+}

@@ -80,6 +80,41 @@ export interface Note {
   message: string
   read: boolean
   role?: string
+  /** addressed to one person (mentions, approvals) */
+  user?: string
+  record?: string
+}
+
+export interface Approval {
+  id: string
+  rule: string
+  record: string
+  module: string
+  requestedBy: string
+  at: string
+  status: 'pending' | 'approved' | 'rejected'
+  decidedBy?: string
+  decidedAt?: string
+  note?: string
+}
+
+export interface Comment {
+  id: string
+  record: string
+  user: string
+  at: string
+  text: string
+}
+
+export interface SavedView {
+  id: string
+  module: string
+  name: string
+  user: string
+  q: string
+  stage: string
+  sort: { key: string; dir: 1 | -1 }
+  view: 'table' | 'board' | 'calendar'
 }
 
 export interface User {
@@ -100,6 +135,9 @@ export interface WorkspaceData {
   sequences: Record<string, number>
   workflowRuns: Record<string, string>
   activity: { id: string; at: string; user: string; text: string; record?: string; module?: string }[]
+  approvals?: Approval[]
+  comments?: Comment[]
+  views?: SavedView[]
 }
 
 export interface Workspace {

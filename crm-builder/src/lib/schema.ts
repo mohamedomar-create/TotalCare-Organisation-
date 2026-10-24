@@ -18,6 +18,8 @@ export type FieldType =
   | 'user'
   | 'formula'
   | 'rating'
+  | 'lookup'
+  | 'rollup'
 
 export interface SelectOption {
   value: string
@@ -47,6 +49,12 @@ export interface FieldDef {
   section?: string
   min?: number
   max?: number
+  /** conditional field: shown (and required, if required) only when this holds */
+  showIf?: Filter
+  /** lookup: show a field of the linked record, e.g. the customer's governorate on a deal */
+  lookup?: { via: string; field: string }
+  /** rollup: aggregate child records that link to this one, e.g. total invoiced for a customer */
+  rollup?: { module: string; via: string; op: Aggregate; field?: string }
 }
 
 /** A role gives a module built-in behaviour (pipeline, stock, accounting). Custom modules have none. */
@@ -74,6 +82,8 @@ export interface Stage {
   color: string
   /** stage gate: these field keys must be filled before a record can enter the stage */
   requires?: string[]
+  /** deal rotting: open records idle in this stage longer than this are flagged */
+  rotDays?: number
 }
 
 export interface ModuleDef {
@@ -90,6 +100,36 @@ export interface ModuleDef {
   /** documents (quotes, invoices, purchases) carry product lines and totals */
   lines?: boolean
   numberPrefix?: string
+  /** validation rules checked on every save */
+  rules?: ValidationRule[]
+  /** lead/deal scoring: points added when a condition matches */
+  scoring?: ScoreRule[]
+}
+
+export interface ValidationRule {
+  id: string
+  /** the rule applies only when these match (empty = always) */
+  when: Filter[]
+  /** this must hold, otherwise the save is refused with the message */
+  check: Filter
+  message: string
+}
+
+export interface ScoreRule {
+  id: string
+  condition: Filter
+  points: number
+}
+
+export interface ApprovalRule {
+  id: string
+  name: string
+  module: string
+  /** post: posting an invoice/bill; stage: moving into a stage */
+  action: 'post' | 'stage'
+  stage?: string
+  conditions: Filter[]
+  approverRole: string
 }
 
 export type Aggregate = 'count' | 'sum' | 'avg' | 'min' | 'max'
@@ -165,6 +205,7 @@ export interface AppSchema {
   reports: ReportDef[]
   workflows: WorkflowDef[]
   roles: RoleDef[]
+  approvals?: ApprovalRule[]
 }
 
 let counter = 0
@@ -181,7 +222,8 @@ export function slugKey(label: string) {
   return k || 'field'
 }
 
-export const NUMERIC_TYPES: FieldType[] = ['number', 'currency', 'percent', 'formula', 'rating']
+export const NUMERIC_TYPES: FieldType[] = ['number', 'currency', 'percent', 'formula', 'rating', 'rollup']
+export const COMPUTED_TYPES: FieldType[] = ['formula', 'lookup', 'rollup']
 export const GROUPABLE_TYPES: FieldType[] = ['select', 'checkbox', 'user', 'relation', 'text', 'date', 'rating']
 
 export function isNumeric(f: FieldDef | undefined) {

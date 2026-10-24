@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
-import { Download, Kanban, Plus, Table2 } from 'lucide-react'
+import { Bookmark, CalendarDays, ChevronLeft, ChevronRight, Clock, Download, Flame, Kanban, Plus, Table2, Upload } from 'lucide-react'
+import { ImportModal } from './ImportModal'
 import { useApp } from './useApp'
 import { Icon } from '../components/Icon'
-import { can, displayValue, list, moveStage, money, recordTitle } from '../lib/engine'
+import { can, displayValue, fieldValue, list, moveStage, money, recordTitle, rotting, score } from '../lib/engine'
+import { update } from '../lib/store'
+import { uid } from '../lib/schema'
 import type { FieldDef, ModuleDef } from '../lib/schema'
 import { moduleById } from '../lib/schema'
 import type { Rec, Workspace } from '../lib/types'
@@ -24,18 +27,33 @@ export default function ModuleView() {
 function View({ mod, ws, schema }: { mod: ModuleDef; ws: Workspace; schema: AppSchema }) {
   const nav = useNavigate()
   const { user, act } = useApp()
-  const [view, setView] = useState<'table' | 'board'>(mod.stages ? 'board' : 'table')
+  const [view, setView] = useState<'table' | 'board' | 'calendar'>(mod.stages ? 'board' : 'table')
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 }>({ key: '__created', dir: -1 })
   const [stage, setStage] = useState('')
+  const [importing, setImporting] = useState(false)
+  const scored = (mod.scoring?.length ?? 0) > 0
+  const dateField = mod.fields.find((f) => ['close_date', 'due_date', 'date', 'visit_date', 'survey_date'].includes(f.key)) ?? mod.fields.find((f) => f.type === 'date')
+  const views = (ws.data.views ?? []).filter((v) => v.module === mod.id && v.user === user.id)
+  function saveView() {
+    const name = prompt('Name this view', stage ? 'My filtered view' : 'My view')
+    if (!name) return
+    update((s) => { (s.workspaces[ws.id].data.views ??= []).push({ id: uid('v'), module: mod.id, user: user.id, name, q, stage, sort, view }) })
+  }
   const cols = mod.fields.filter((f) => f.inList).slice(0, 7)
   const all = list(ws, mod.id)
   const rows = all
     .filter((r) => !q || recordTitle(ws, schema, r).toLowerCase().includes(q.toLowerCase()) || cols.some((c) => displayValue(ws, schema, c, r.values[c.key]).toLowerCase().includes(q.toLowerCase())))
     .filter((r) => !stage || r.stage === stage || r.status === stage)
     .sort((a, b) => {
-      const av = sort.key === '__created' ? a.createdAt : (a.values[sort.key] as string | number | undefined) ?? ''
-      const bv = sort.key === '__created' ? b.createdAt : (b.values[sort.key] as string | number | undefined) ?? ''
+      const val = (r: Rec) => {
+        if (sort.key === '__created') return r.createdAt
+        if (sort.key === '__score') return score(ws, schema, r)
+        const f = mod.fields.find((x) => x.key === sort.key)
+        return ((f ? fieldValue(ws, schema, r, f) : r.values[sort.key]) as string | number | undefined) ?? ''
+      }
+      const av = val(a)
+      const bv = val(b)
       return (av > bv ? 1 : av < bv ? -1 : 0) * sort.dir
     })
 
@@ -56,12 +74,12 @@ function View({ mod, ws, schema }: { mod: ModuleDef; ws: Workspace; schema: AppS
       <div className="page-head">
         <h1><span className="badge" style={{ background: mod.color }}><Icon name={mod.icon} size={20} /></span>{mod.name} <span className="pill gray">{all.length}</span></h1>
         <div className="row">
-          {mod.stages && (
-            <div className="seg">
-              <button className={view === 'board' ? 'on' : ''} onClick={() => setView('board')}><Kanban size={15} /> Board</button>
-              <button className={view === 'table' ? 'on' : ''} onClick={() => setView('table')}><Table2 size={15} /> Table</button>
-            </div>
-          )}
+          <div className="seg">
+            {mod.stages && <button className={view === 'board' ? 'on' : ''} onClick={() => setView('board')}><Kanban size={15} /> Board</button>}
+            <button className={view === 'table' ? 'on' : ''} onClick={() => setView('table')}><Table2 size={15} /> Table</button>
+            {dateField && <button className={view === 'calendar' ? 'on' : ''} onClick={() => setView('calendar')}><CalendarDays size={15} /> Calendar</button>}
+          </div>
+          {can({ schema, user }, mod.id, 'create') && !mod.lines && <button className="secondary" onClick={() => setImporting(true)}><Upload size={15} /> Import</button>}
           <button className="secondary" onClick={exportCsv}><Download size={15} /> Export</button>
           {can({ schema, user }, mod.id, 'create') && <button onClick={() => nav(`/app/new/${mod.id}`)}><Plus size={16} /> New {mod.singular.toLowerCase()}</button>}
         </div>
@@ -75,6 +93,14 @@ function View({ mod, ws, schema }: { mod: ModuleDef; ws: Workspace; schema: AppS
             {mod.lines && (mod.role === 'quotes' ? ['draft', 'sent', 'accepted', 'declined', 'invoiced'] : ['draft', 'posted', 'partial', 'paid', 'void']).map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         )}
+        <span className="grow" />
+        {views.length > 0 && (
+          <select value="" onChange={(e) => { const v = views.find((x) => x.id === e.target.value); if (v) { setQ(v.q); setStage(v.stage); setSort(v.sort); setView(v.view === 'board' && !mod.stages ? 'table' : v.view) } }} style={{ width: 'auto' }}>
+            <option value="">Saved views…</option>
+            {views.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+          </select>
+        )}
+        <button className="ghost" onClick={saveView} title="Save the current search, filter, sort and layout"><Bookmark size={15} /> Save view</button>
       </div>
 
       {all.length === 0 ? (
@@ -84,6 +110,8 @@ function View({ mod, ws, schema }: { mod: ModuleDef; ws: Workspace; schema: AppS
           <p className="small">Create the first one to get started.</p>
           {can({ schema, user }, mod.id, 'create') && <Link className="btn" to={`/app/new/${mod.id}`}><Plus size={16} /> New {mod.singular.toLowerCase()}</Link>}
         </div>
+      ) : view === 'calendar' && dateField ? (
+        <Calendar rows={rows} dateKey={dateField.key} ws={ws} schema={schema} color={mod.color} />
       ) : view === 'board' && mod.stages ? (
         <Board mod={mod} rows={rows} ws={ws} schema={schema} onMove={(id, st) => act((ctx) => moveStage(ctx, list(ctx.ws, mod.id).find((r) => r.id === id)!, st))} />
       ) : (
@@ -94,6 +122,7 @@ function View({ mod, ws, schema }: { mod: ModuleDef; ws: Workspace; schema: AppS
                 <th onClick={() => setSort({ key: mod.titleField, dir: sort.dir === 1 ? -1 : 1 })}>{mod.lines ? 'Number' : mod.fields.find((f) => f.key === mod.titleField)?.label}</th>
                 {mod.stages && <th>Stage</th>}
                 {mod.lines && <th>Status</th>}
+                {scored && <th onClick={() => setSort({ key: '__score', dir: sort.key === '__score' && sort.dir === -1 ? 1 : -1 })}>Score{sort.key === '__score' ? (sort.dir === 1 ? ' ↑' : ' ↓') : ''}</th>}
                 {cols.filter((c) => c.key !== mod.titleField).map((c) => (
                   <th key={c.id} className={isNum(c) ? 'num' : ''} onClick={() => setSort({ key: c.key, dir: sort.key === c.key && sort.dir === 1 ? -1 : 1 })}>{c.label}{sort.key === c.key ? (sort.dir === 1 ? ' ↑' : ' ↓') : ''}</th>
                 ))}
@@ -105,6 +134,7 @@ function View({ mod, ws, schema }: { mod: ModuleDef; ws: Workspace; schema: AppS
                   <td><b>{mod.lines ? (r.number ?? 'Draft') : recordTitle(ws, schema, r)}</b></td>
                   {mod.stages && <td>{(() => { const s = mod.stages.find((x) => x.id === r.stage); return s ? <span className="pill" style={{ background: s.color + '22', color: s.color }}>{s.name}</span> : null })()}</td>}
                   {mod.lines && <td><span className={`pill ${STATUS_PILL[r.status ?? 'draft']}`}>{r.status}</span></td>}
+                  {scored && <td><ScorePill n={score(ws, schema, r)} /></td>}
                   {cols.filter((c) => c.key !== mod.titleField).map((c) => <td key={c.id} className={isNum(c) ? 'num' : ''}><Cell field={c} rec={r} ws={ws} schema={schema} /></td>)}
                 </tr>
               ))}
@@ -114,22 +144,29 @@ function View({ mod, ws, schema }: { mod: ModuleDef; ws: Workspace; schema: AppS
                 <tr>
                   <td>Total ({rows.length})</td>
                   {mod.stages && <td />}
+                  {scored && <td />}
                   {mod.lines && <td />}
-                  {cols.filter((c) => c.key !== mod.titleField).map((c) => <td key={c.id} className="num">{c.type === 'currency' ? money(rows.filter((r) => r.status !== 'void').reduce((s, r) => s + Number(r.values[c.key] ?? 0), 0), schema.company.currency) : ''}</td>)}
+                  {cols.filter((c) => c.key !== mod.titleField).map((c) => <td key={c.id} className="num">{c.type === 'currency' ? money(rows.filter((r) => r.status !== 'void').reduce((s, r) => s + Number(fieldValue(ws, schema, r, c) ?? 0), 0), schema.company.currency) : ''}</td>)}
                 </tr>
               </tfoot>
             )}
           </table>
         </div>
       )}
+      {importing && <ImportModal mod={mod} onClose={() => setImporting(false)} />}
     </div>
   )
 }
 
 const isNum = (f: FieldDef) => ['number', 'currency', 'percent', 'formula'].includes(f.type)
 
+function ScorePill({ n }: { n: number }) {
+  const hot = n >= 40
+  return <span className={`pill ${hot ? 'red' : n >= 20 ? 'amber' : 'gray'}`}><Flame size={12} /> {n}</span>
+}
+
 function Cell({ field, rec, ws, schema }: { field: FieldDef; rec: Rec; ws: Workspace; schema: AppSchema }) {
-  const v = rec.values[field.key]
+  const v = fieldValue(ws, schema, rec, field)
   if (field.type === 'select') {
     const o = field.options?.find((x) => x.value === v)
     return o ? <span className="pill" style={{ background: o.color + '22', color: o.color }}>{o.label}</span> : null
@@ -170,15 +207,62 @@ function Column({ id, children }: { id: string; children: React.ReactNode }) {
 function Card({ rec, color, mod, ws, schema, amountField }: { rec: Rec; color: string; mod: ModuleDef; ws: Workspace; schema: AppSchema; amountField?: FieldDef }) {
   const nav = useNavigate()
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: rec.id, data: { stage: rec.stage } })
+  const rot = rotting(schema, rec)
   const owner = mod.fields.find((f) => f.type === 'user')
   const rel = mod.fields.find((f) => f.type === 'relation')
   return (
-    <div ref={setNodeRef} {...listeners} {...attributes} className={`kcard ${isDragging ? 'dragging' : ''}`} style={{ ['--c' as string]: color, transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined }} onClick={() => nav(`/app/r/${rec.id}`)}>
+    <div ref={setNodeRef} {...listeners} {...attributes} className={`kcard ${isDragging ? 'dragging' : ''} ${rot.rotting ? 'rotting' : ''}`} style={{ ['--c' as string]: rot.rotting ? '#ef4444' : color, transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined }} onClick={() => nav(`/app/r/${rec.id}`)}>
       <b>{recordTitle(ws, schema, rec)}</b>
+      {(rot.rotting || (mod.scoring?.length ?? 0) > 0) && (
+        <div className="row" style={{ gap: 4, margin: '2px 0 4px' }}>
+          {(mod.scoring?.length ?? 0) > 0 && <ScorePill n={score(ws, schema, rec)} />}
+          {rot.rotting && <span className="pill red tiny"><Clock size={11} /> idle {rot.days}d</span>}
+        </div>
+      )}
       {rel && <div className="tiny muted">{displayValue(ws, schema, rel, rec.values[rel.key])}</div>}
       <div className="meta">
         <span>{amountField ? displayValue(ws, schema, amountField, rec.values[amountField.key]) : ''}</span>
         <span>{owner ? displayValue(ws, schema, owner, rec.values[owner.key]) : ''}</span>
+      </div>
+    </div>
+  )
+}
+
+function Calendar({ rows, dateKey, ws, schema, color }: { rows: Rec[]; dateKey: string; ws: Workspace; schema: AppSchema; color: string }) {
+  const nav = useNavigate()
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7))
+  const [y, m] = month.split('-').map(Number)
+  const first = new Date(Date.UTC(y, m - 1, 1))
+  const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
+  const lead = (first.getUTCDay() + 1) % 7 // weeks start on Saturday (Egypt); Sunday-first locales still read fine
+  const shift = (d: number) => { const t = new Date(Date.UTC(y, m - 1 + d, 1)); setMonth(t.toISOString().slice(0, 7)) }
+  const byDay = new Map<number, Rec[]>()
+  for (const r of rows) {
+    const v = String(r.values[dateKey] ?? '')
+    if (v.slice(0, 7) === month) byDay.set(Number(v.slice(8, 10)), [...(byDay.get(Number(v.slice(8, 10))) ?? []), r])
+  }
+  const today = new Date().toISOString().slice(0, 10)
+  return (
+    <div className="card">
+      <div className="row between" style={{ marginBottom: 10 }}>
+        <button className="ghost icon" onClick={() => shift(-1)}><ChevronLeft size={18} /></button>
+        <b>{first.toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })}</b>
+        <button className="ghost icon" onClick={() => shift(1)}><ChevronRight size={18} /></button>
+      </div>
+      <div className="cal">
+        {['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((d) => <div key={d} className="cal-h">{d}</div>)}
+        {Array.from({ length: lead }, (_, i) => <div key={`e${i}`} />)}
+        {Array.from({ length: days }, (_, i) => {
+          const d = i + 1
+          const iso = `${month}-${String(d).padStart(2, '0')}`
+          return (
+            <div key={d} className={`cal-d ${iso === today ? 'today' : ''}`}>
+              <span className="cal-n">{d}</span>
+              {(byDay.get(d) ?? []).slice(0, 4).map((r) => <div key={r.id} className="cal-ev" style={{ borderColor: color }} onClick={() => nav(`/app/r/${r.id}`)}>{recordTitle(ws, schema, r)}</div>)}
+              {(byDay.get(d)?.length ?? 0) > 4 && <span className="tiny muted">+{byDay.get(d)!.length - 4} more</span>}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

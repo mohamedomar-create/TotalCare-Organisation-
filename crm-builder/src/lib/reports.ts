@@ -1,7 +1,7 @@
 import type { AppSchema, ReportDef } from './schema'
 import { fieldByKey, moduleById } from './schema'
 import type { Rec, Workspace } from './types'
-import { displayValue, list, matches, pseudoValue, round2 } from './engine'
+import { displayValue, fieldValue, list, matches, pseudoValue, round2 } from './engine'
 import { PALETTE } from './fieldTypes'
 
 export interface ReportRow {
@@ -32,8 +32,8 @@ function aggregate(op: ReportDef['measure']['op'], values: number[]) {
 export function runReport(ws: Workspace, schema: AppSchema, r: ReportDef, records?: Rec[]): ReportResult {
   const mod = moduleById(schema, r.module)
   if (!mod) return { rows: [], total: 0, count: 0 }
-  const recs = (records ?? list(ws, mod.id)).filter((rec) => rec.status !== 'void' && matches(schema, rec, r.filters))
-  const measure = (rec: Rec) => Number(rec.values[r.measure.field ?? ''] ?? 0) || 0
+  const recs = (records ?? list(ws, mod.id)).filter((rec) => rec.status !== 'void' && matches(schema, rec, r.filters, ws))
+  const measure = (rec: Rec) => Number(pseudoValue(schema, rec, r.measure.field ?? '', ws) ?? 0) || 0
   const total = aggregate(r.measure.op, recs.map(measure))
   if (r.chart === 'kpi' || !r.groupBy) return { rows: [], total, count: recs.length }
 
@@ -61,7 +61,7 @@ export function runReport(ws: Workspace, schema: AppSchema, r: ReportDef, record
         add(tag, o?.label ?? tag, o?.color ?? r.color, v)
       }
     } else if (field) {
-      const raw = rec.values[field.key]
+      const raw = fieldValue(ws, schema, rec, field)
       const key = raw === undefined || raw === '' ? '∅' : String(raw)
       const label = key === '∅' ? 'Not set' : displayValue(ws, schema, field, raw)
       const color = field.type === 'select' ? (field.options?.find((o) => o.value === raw)?.color ?? '#94a3b8') : r.color

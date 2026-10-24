@@ -18,6 +18,28 @@ Bonyan (بنيان, "structure") is not another fixed CRM. It is a tool that let
 
 Then the team works in the generated app: a dashboard, list and Kanban views, generated forms, lead conversion, quotes → invoices, posting, payments, printable tax invoices, stock, accounting, team and users, global search, notifications, and CSV export.
 
+## Features inspired by the world's leading systems
+
+| Feature | Where it comes from | In Bonyan |
+|---|---|---|
+| Custom modules and relations | Attio, Airtable | Any module, linked records, title field |
+| **Lookup & rollup fields** | Airtable, Attio | e.g. "Total invoiced" and "Balance due" on each customer, the customer's governorate on a deal |
+| **Conditional fields** | Odoo Studio, Zoho layout rules | "Show only when…"; hidden fields are never required |
+| **Validation rules** | Salesforce, Zoho | "When … this must be true", with your own error message |
+| **Approvals** | Odoo, ERPNext | Posting or moving to a stage waits for a role's sign-off; an approval stops counting if the record changes; no self-approval |
+| Stage gates & weighted forecast | Salesforce, HubSpot | Required fields per stage; amount × probability |
+| **Deal rotting** | Pipedrive | Per-stage "flag after N idle days" on cards and records |
+| **Lead scoring** | HubSpot | Points per condition; a Score column, sorting and badges |
+| Views | monday.com, Airtable, Attio | Board, table and **calendar**; **saved views** per person |
+| Visual automations | HubSpot, Zapier | When → Only if → Then |
+| **CSV import** | All leading CRMs | Auto-matched columns, per-row validation and an error report |
+| **Field history** | Salesforce | "Amount: EGP 100 → EGP 250" in each record's history |
+| **Notes & @mentions** | Attio, HubSpot | Mentioned colleagues get a notification |
+| **Reorder alerts** | ERPNext | A notification and task when stock reaches the reorder level |
+| **Receivables & payables ageing** | ERPNext, Odoo | Not yet due, 1–30, 31–60, 61–90 and 90+ days |
+
+New companies get sensible defaults automatically: rollups on customers, a lookup on deals, lead scoring rules, rotting thresholds, a "deal amount > 0" rule, and manager approval for large invoices and purchases (when a Management team exists).
+
 ## Guardrails (why it stays correct)
 
 | Area | Rule |
@@ -34,7 +56,7 @@ Then the team works in the generated app: a dashboard, list and Kanban views, ge
 | Automations | References are validated before publishing, and actions never re-trigger automations, so nothing loops. |
 | Permissions | Enforced in the engine, not only hidden in the UI. Finance rights are separate from edit rights. |
 
-These rules are covered by unit tests (`src/lib/engine.test.ts`). Each industry template must generate with zero validation errors, and its sample data must keep the books balanced.
+These rules are covered by 33 unit tests (`src/lib/engine.test.ts`). Each industry template must generate with zero validation errors, and its sample data must keep the books balanced.
 
 ## Industry templates
 

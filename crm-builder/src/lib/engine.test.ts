@@ -152,3 +152,115 @@ describe('formula', () => {
     expect(() => formulaRefs('alert(1);')).toThrow()
   })
 })
+
+import { addComment, ageing, approvalNeeded, decideApproval, fieldValue, importRows, requestApproval, rotting, score, updateRecord } from './engine'
+
+describe('competitor-grade features', () => {
+  function setup() {
+    const w = workspace()
+    const sales = w.schema.roles.find((r) => r.name === 'Sales')!
+    const finance = w.schema.roles.find((r) => r.finance && !r.admin)!
+    const manager = w.schema.roles.find((r) => r.name === 'Management')!
+    const clerk: User = { id: 'u_fin', name: 'Fatma Finance', email: 'f@x.com', roleId: finance.id }
+    const boss: User = { id: 'u_mgr', name: 'Hany Manager', email: 'h@x.com', roleId: manager.id }
+    const rep: User = { id: 'u_rep', name: 'Rami Rep', email: 'r@x.com', roleId: sales.id }
+    w.ws.users.push(clerk, boss, rep)
+    return { ...w, clerk, boss, rep }
+  }
+
+  it('rollups and lookups follow linked records', () => {
+    const { ws, schema, ctx } = setup()
+    const acc = createRecord(ctx, moduleByRole(schema, 'accounts')!.id, { name: 'Acme', owner: admin.id, governorate: 'giza' })
+    const svc = createRecord(ctx, moduleByRole(schema, 'products')!.id, { name: 'Svc', sku: 'S', price: 1000, vat_rate: 14, track_stock: false })
+    const inv = createRecord(ctx, moduleByRole(schema, 'invoices')!.id, { customer: acc.id, date: '2026-01-01' }, { lines: [{ id: uid('l'), product: svc.id, description: 'Svc', qty: 2, price: 1000, discount: 0, vat: 14 }] })
+    postDocument(ctx, inv)
+    const accounts = moduleByRole(schema, 'accounts')!
+    expect(fieldValue(ws, schema, acc, accounts.fields.find((f) => f.key === 'total_invoiced')!)).toBe(2280)
+    const deals = moduleByRole(schema, 'deals')!
+    const deal = createRecord(ctx, deals.id, { title: 'D', account: acc.id, amount: 5, close_date: '2026-02-01' })
+    expect(fieldValue(ws, schema, deal, deals.fields.find((f) => f.key === 'customer_governorate')!)).toBe('giza')
+  })
+
+  it('enforces validation rules and conditional required fields', () => {
+    const { schema, ctx } = setup()
+    const deals = moduleByRole(schema, 'deals')!
+    const acc = createRecord(ctx, moduleByRole(schema, 'accounts')!.id, { name: 'A', owner: admin.id })
+    expect(() => createRecord(ctx, deals.id, { title: 'Zero', account: acc.id, amount: 0, close_date: '2026-02-01' })).toThrow(/more than 0/)
+    deals.fields.push({ id: 'f_reason', key: 'lost_reason', label: 'Lost reason', type: 'text', required: true, showIf: { field: 'title', op: 'contains', value: 'lost' } })
+    expect(() => createRecord(ctx, deals.id, { title: 'Normal', account: acc.id, amount: 10, close_date: '2026-02-01' })).not.toThrow()
+    expect(() => createRecord(ctx, deals.id, { title: 'lost deal', account: acc.id, amount: 10, close_date: '2026-02-01' })).toThrow(/Lost reason is required/)
+  })
+
+  it('requires manager approval to post a large invoice', () => {
+    const { ws, schema, clerk, boss } = setup()
+    const asClerk: Ctx = { ws, schema, user: clerk }
+    const asBoss: Ctx = { ws, schema, user: boss }
+    const adminCtx: Ctx = { ws, schema, user: admin }
+    const acc = createRecord(adminCtx, moduleByRole(schema, 'accounts')!.id, { name: 'Big', owner: admin.id })
+    const svc = createRecord(adminCtx, moduleByRole(schema, 'products')!.id, { name: 'Big svc', sku: 'B', price: 300000, vat_rate: 14, track_stock: false })
+    const inv = createRecord(adminCtx, moduleByRole(schema, 'invoices')!.id, { customer: acc.id, date: '2026-03-01' }, { lines: [{ id: uid('l'), product: svc.id, description: 'x', qty: 1, price: 300000, discount: 0, vat: 14 }] })
+    expect(() => postDocument(asClerk, inv)).toThrow(/Needs approval/)
+    const rule = approvalNeeded(asClerk, inv, 'post')!
+    const req = requestApproval(asClerk, inv, rule.id)
+    expect(() => postDocument(asClerk, inv)).toThrow(/Waiting for approval/)
+    expect(() => decideApproval(asClerk, req.id, true)).toThrow(/can’t decide/)
+    decideApproval(asBoss, req.id, true, 'ok')
+    expect(ws.data.notes.some((n) => n.user === clerk.id && n.message.includes('approved'))).toBe(true)
+    postDocument(asClerk, inv)
+    expect(inv.status).toBe('posted')
+  })
+
+  it('scores leads, flags rotting deals and records field history', () => {
+    const { ws, schema, ctx } = setup()
+    const leads = moduleByRole(schema, 'leads')!
+    const hot = createRecord(ctx, leads.id, { name: 'Hot', phone: '+20 1011111111', source: 'referral', email: 'a@b.co', company: 'Big Co' })
+    const cold = createRecord(ctx, leads.id, { name: 'Cold', phone: '+20 1022222222', source: 'facebook' })
+    expect(score(ws, schema, hot)).toBe(45)
+    expect(score(ws, schema, cold)).toBe(0)
+    const deals = moduleByRole(schema, 'deals')!
+    const acc = createRecord(ctx, moduleByRole(schema, 'accounts')!.id, { name: 'A', owner: admin.id })
+    const deal = createRecord(ctx, deals.id, { title: 'Old', account: acc.id, amount: 100, close_date: '2026-02-01' })
+    deal.updatedAt = deal.createdAt = '2026-01-01T00:00:00.000Z'
+    deal.stageHistory = [{ stage: deal.stage!, at: deal.createdAt }]
+    expect(rotting(schema, deal, '2026-02-01').rotting).toBe(true)
+    updateRecord(ctx, deal, { amount: 250 })
+    expect(ws.data.activity.some((a) => a.record === deal.id && a.text.includes('Amount: EGP 100.00 → EGP 250.00'))).toBe(true)
+  })
+
+  it('imports rows with conversion and reports bad rows', () => {
+    const { ws, schema, ctx } = setup()
+    const leads = moduleByRole(schema, 'leads')!
+    const res = importRows(ctx, leads.id, [
+      { Name: 'Ali', Mobile: '+20 1033333333', From: 'Facebook' },
+      { Name: 'Bad', Mobile: '+20 1044444444', From: 'Carrier pigeon' },
+      { Name: '', Mobile: '+20 1055555555', From: 'Website' },
+    ], { Name: 'name', Mobile: 'phone', From: 'source' })
+    expect(res.created).toBe(1)
+    expect(res.errors.map((e) => e.row)).toEqual([3, 4])
+    expect(list(ws, leads.id)[0].values.source).toBe('facebook')
+  })
+
+  it('ages receivables and notifies @mentions', () => {
+    const { ws, schema, ctx, rep } = setup()
+    const acc = createRecord(ctx, moduleByRole(schema, 'accounts')!.id, { name: 'Slow', owner: admin.id })
+    const svc = createRecord(ctx, moduleByRole(schema, 'products')!.id, { name: 'S', sku: 'S9', price: 100, vat_rate: 0, track_stock: false })
+    const inv = createRecord(ctx, moduleByRole(schema, 'invoices')!.id, { customer: acc.id, date: '2026-01-01', due_date: '2026-01-10' }, { lines: [{ id: uid('l'), product: svc.id, description: 'S', qty: 1, price: 100, discount: 0, vat: 0 }] })
+    postDocument(ctx, inv)
+    const rows = ageing(ws, schema, 'invoices', '2026-03-01')
+    expect(rows[0]).toMatchObject({ name: 'Slow', d30: 0, d60: 100, total: 100 })
+    addComment(ctx, acc, 'Please call them @Rami')
+    expect(ws.data.notes.some((n) => n.user === rep.id)).toBe(true)
+  })
+
+  it('raises a reorder alert when stock drops to the reorder level', () => {
+    const { ws, schema, ctx } = setup()
+    const p = createRecord(ctx, moduleByRole(schema, 'products')!.id, { name: 'Filter', sku: 'F1', price: 50, vat_rate: 14, track_stock: true, reorder_level: 5 })
+    const s = createRecord(ctx, moduleByRole(schema, 'suppliers')!.id, { name: 'S' })
+    const bill = createRecord(ctx, moduleByRole(schema, 'purchases')!.id, { supplier: s.id, date: '2026-01-01' }, { lines: [{ id: uid('l'), product: p.id, description: 'F', qty: 8, price: 20, discount: 0, vat: 14 }] })
+    postDocument(ctx, bill)
+    const c = createRecord(ctx, moduleByRole(schema, 'accounts')!.id, { name: 'C', owner: admin.id })
+    const inv = createRecord(ctx, moduleByRole(schema, 'invoices')!.id, { customer: c.id, date: '2026-01-02' }, { lines: [{ id: uid('l'), product: p.id, description: 'F', qty: 4, price: 50, discount: 0, vat: 14 }] })
+    postDocument(ctx, inv)
+    expect(ws.data.notes.some((n) => n.message.startsWith('Reorder Filter: 4 left'))).toBe(true)
+  })
+})

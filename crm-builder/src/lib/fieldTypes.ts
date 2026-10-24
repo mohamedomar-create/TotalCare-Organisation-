@@ -26,6 +26,8 @@ export const FIELD_TYPES: FieldTypeInfo[] = [
   { type: 'phone', label: 'Phone / WhatsApp', icon: 'Phone', hint: 'Mobile or landline', group: 'Contact' },
   { type: 'url', label: 'Link', icon: 'Link', hint: 'Website or document link', group: 'Contact' },
   { type: 'relation', label: 'Link to record', icon: 'Network', hint: 'Connect to another module', group: 'Advanced' },
+  { type: 'lookup', label: 'Lookup', icon: 'Eye', hint: 'Show a field from a linked record', group: 'Advanced' },
+  { type: 'rollup', label: 'Rollup', icon: 'Calculator', hint: 'Total or count of linked records', group: 'Advanced' },
 ]
 
 export const PALETTE = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#64748b', '#f97316']

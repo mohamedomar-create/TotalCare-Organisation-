@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AlertTriangle, BarChart3, CheckCircle2, Kanban, LayoutDashboard, Rocket, Settings, Shield, X, Zap, Layers } from 'lucide-react'
+import { AlertTriangle, BarChart3, CheckCircle2, Kanban, LayoutDashboard, Rocket, Settings, Shield, ShieldAlert, X, Zap, Layers } from 'lucide-react'
 import { Logo } from '../components/Logo'
 import { useDraft } from './useDraft'
 import { healthScore, type Issue, type Tab } from '../lib/validate'
@@ -12,14 +12,16 @@ import ReportsTab from './ReportsTab'
 import AutomationsTab from './AutomationsTab'
 import RolesTab from './RolesTab'
 import SettingsTab from './SettingsTab'
+import RulesTab from './RulesTab'
 
 const TABS: { id: Tab; label: string; icon: typeof Layers }[] = [
-  { id: 'modules', label: 'Modules & fields', icon: Layers },
+  { id: 'modules', label: 'Modules', icon: Layers },
   { id: 'pipelines', label: 'Pipelines', icon: Kanban },
-  { id: 'reports', label: 'Reports & dashboard', icon: BarChart3 },
+  { id: 'reports', label: 'Reports', icon: BarChart3 },
   { id: 'automations', label: 'Automations', icon: Zap },
-  { id: 'roles', label: 'Roles & access', icon: Shield },
-  { id: 'settings', label: 'Company & tax', icon: Settings },
+  { id: 'rules', label: 'Rules & approvals', icon: ShieldAlert },
+  { id: 'roles', label: 'Access', icon: Shield },
+  { id: 'settings', label: 'Company', icon: Settings },
 ]
 
 export interface Focus {
@@ -93,6 +95,7 @@ export default function Builder() {
         {tab === 'pipelines' && <PipelinesTab focus={focus} setFocus={setFocus} />}
         {tab === 'reports' && <ReportsTab focus={focus} setFocus={setFocus} />}
         {tab === 'automations' && <AutomationsTab focus={focus} setFocus={setFocus} />}
+        {tab === 'rules' && <RulesTab focus={focus} setFocus={setFocus} />}
         {tab === 'roles' && <RolesTab />}
         {tab === 'settings' && <SettingsTab />}
       </div>

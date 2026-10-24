@@ -5,6 +5,21 @@ import { Icon } from '../components/Icon'
 import { useLang } from '../lib/i18n'
 import { Logo } from '../components/Logo'
 
+const BEST = [
+  ['Custom modules & relations', 'Attio, Airtable'],
+  ['Lookup & rollup fields', 'Airtable, Attio'],
+  ['Conditional fields', 'Odoo Studio, Zoho layout rules'],
+  ['Validation rules', 'Salesforce, Zoho'],
+  ['Multi-step approvals', 'Odoo, ERPNext'],
+  ['Stage gates & weighted forecast', 'Salesforce, HubSpot'],
+  ['Deal rotting alerts', 'Pipedrive'],
+  ['Lead scoring', 'HubSpot'],
+  ['Board, table & calendar views + saved views', 'monday.com, Airtable'],
+  ['Visual automations', 'HubSpot, Zapier'],
+  ['CSV import with column matching', 'every leading CRM'],
+  ['Stock, reorder alerts & receivables ageing', 'ERPNext, Odoo'],
+]
+
 const GUARDS = [
   { icon: Calculator, title: 'Accounting that always balances', text: 'Every posted invoice, bill and payment writes a double-entry journal. If debits don’t equal credits, nothing is saved.' },
   { icon: Boxes, title: 'Stock that matches reality', text: 'On-hand quantity and moving-average cost are calculated by the system, never typed in. Overselling is blocked.' },
@@ -80,6 +95,19 @@ export default function Landing() {
               <Icon name={tp.icon} size={28} />
               <h3>{lang === 'ar' ? tp.nameAr : tp.name}</h3>
               <p>{tp.tagline}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <h2 className="big">The best ideas from the world’s top systems, in one builder</h2>
+        <p className="sub">Features you would normally buy from five different products, ready to switch on and shape around your business.</p>
+        <div className="tpl-grid">
+          {BEST.map(([f, from]) => (
+            <div key={f} className="guard" style={{ padding: 18 }}>
+              <h3 style={{ fontSize: '0.98rem' }}><CheckCircle2 size={18} color="#34d399" /> {f}</h3>
+              <p className="small">Inspired by {from}</p>
             </div>
           ))}
         </div>

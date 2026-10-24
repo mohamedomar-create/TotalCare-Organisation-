@@ -135,6 +135,11 @@ function StageCard({ stage, fields, onChange, onRemove }: { stage: Stage; fields
       <label className="field">Probability {stage.probability}%
         <input type="range" min={0} max={100} step={5} value={stage.probability} disabled={stage.type !== 'open'} onChange={(e) => onChange({ probability: Number(e.target.value) })} />
       </label>
+      {stage.type === 'open' && (
+        <label className="field">Flag as rotting after (days)
+          <input type="number" min={0} value={stage.rotDays ?? ''} placeholder="Off" onChange={(e) => onChange({ rotDays: e.target.value === '' ? undefined : Math.max(0, Number(e.target.value)) })} />
+        </label>
+      )}
       <div className="field">
         <span className="small" style={{ fontWeight: 600 }}>Must be filled to enter</span>
         <div className="chips" style={{ marginTop: 6 }}>

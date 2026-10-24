@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Ban, Banknote, CheckCircle2, FileCheck2, Lock, Plus, Printer, Save, Send, Star, Trash2, UserPlus, X } from 'lucide-react'
+import { ArrowLeft, Ban, Banknote, CheckCircle2, Clock, FileCheck2, Flame, Lock, MessageSquare, Plus, Printer, Save, Send, ShieldAlert, Star, Trash2, UserPlus, X } from 'lucide-react'
 import { useApp } from './useApp'
 import { Icon } from '../components/Icon'
 import {
   EngineError, can, canPost, convertLead, createRecord, deleteRecord, displayValue, findRecord, lineNet, lineTax, list, money, moveStage, onHand,
   postDocument, quoteToInvoice, recordTitle, registerPayment, setLines, totals, updateRecord, voidDocument, type Ctx,
+  addComment, approvalNeeded, canApprove, fieldValue, isVisible, requestApproval, rotting, score,
 } from '../lib/engine'
 import type { FieldDef, ModuleDef } from '../lib/schema'
 import { moduleById, moduleByRole, uid } from '../lib/schema'
@@ -60,6 +61,8 @@ function Editor({ mod, rec, ws, schema }: { mod: ModuleDef; rec?: Rec; ws: Works
           <button className="ghost icon" onClick={() => nav(`/app/m/${mod.id}`)} aria-label="Back"><ArrowLeft size={18} /></button>
           <span className="badge" style={{ background: mod.color }}><Icon name={mod.icon} size={20} /></span>
           {isNew ? `New ${mod.singular.toLowerCase()}` : recordTitle(ws, schema, rec)}
+          {rec && (mod.scoring?.length ?? 0) > 0 && <span className="pill amber" title="Score from the scoring rules"><Flame size={13} /> {score(ws, schema, rec)}</span>}
+          {rec && rotting(schema, rec).rotting && <span className="pill red" title="No progress for a while"><Clock size={13} /> idle {rotting(schema, rec).days} days</span>}
           {rec?.status && <span className={`pill ${rec.status === 'paid' ? 'green' : rec.status === 'void' ? 'red' : rec.status === 'partial' ? 'amber' : rec.status === 'draft' ? 'gray' : ''}`}>{rec.status}</span>}
         </h1>
         <div className="row">
@@ -87,6 +90,8 @@ function Editor({ mod, rec, ws, schema }: { mod: ModuleDef; rec?: Rec; ws: Works
         </div>
       </div>
 
+      {rec && <ApprovalBanner rec={rec} mod={mod} />}
+
       {mod.stages && rec && (
         <div className="stage-path">
           {mod.stages.map((s, i) => {
@@ -105,11 +110,11 @@ function Editor({ mod, rec, ws, schema }: { mod: ModuleDef; rec?: Rec; ws: Works
           <div className="card">
             {docLocked && <div className="info" style={{ marginBottom: 12 }}><Lock size={13} /> {mod.role === 'quotes' ? 'This quotation was turned into an invoice.' : 'Posted documents are locked to keep your books correct. Void it and create a new one to make changes.'}</div>}
             <div className="form-grid">
-              {mod.fields.filter((f) => !(mod.lines && ['subtotal', 'tax', 'total', 'paid', 'balance'].includes(f.key))).map((f) => (
+              {mod.fields.filter((f) => !(mod.lines && ['subtotal', 'tax', 'total', 'paid', 'balance'].includes(f.key)) && isVisible(mod, f, values)).map((f) => (
                 <div key={f.id} className={f.width === 2 || f.type === 'longtext' ? 'w2' : ''}>
                   <label className="field">
                     <span>{f.label}{f.required && !f.readOnly && <span style={{ color: 'var(--danger)' }}> *</span>}</span>
-                    <FieldInput field={f} value={values[f.key]} onChange={(v) => set(f.key, v)} disabled={!editable} ws={ws} schema={schema} />
+                    <FieldInput field={f} value={(f.type === 'lookup' || f.type === 'rollup') ? (rec ? fieldValue(ws, schema, rec, f) : undefined) : values[f.key]} onChange={(v) => set(f.key, v)} disabled={!editable} ws={ws} schema={schema} />
                   </label>
                   {f.help && <span className="tiny muted">{f.help}</span>}
                 </div>
@@ -135,6 +140,7 @@ function Editor({ mod, rec, ws, schema }: { mod: ModuleDef; rec?: Rec; ws: Works
               ))}
             </div>
           )}
+          {rec && <Comments rec={rec} />}
           {rec && (
             <div className="card">
               <h2>History</h2>
@@ -179,8 +185,8 @@ function relatedRecords(ws: Workspace, schema: AppSchema, rec: Rec) {
 }
 
 function FieldInput({ field, value, onChange, disabled, ws, schema }: { field: FieldDef; value: unknown; onChange: (v: unknown) => void; disabled?: boolean; ws: Workspace; schema: AppSchema }) {
-  if (field.readOnly || field.type === 'formula') {
-    const shown = field.type === 'formula' ? (value === undefined || value === null ? '—' : Number(value).toLocaleString()) : displayValue(ws, schema, field, value) || '—'
+  if (field.readOnly || field.type === 'formula' || field.type === 'lookup' || field.type === 'rollup') {
+    const shown = field.type === 'formula' ? (value === undefined || value === null ? '—' : Number(value).toLocaleString()) : displayValue(ws, schema, field, value) || (value === 0 ? '0' : '—')
     return <div className="ro-value">{shown}</div>
   }
   const str = value === undefined || value === null ? '' : String(value)
@@ -369,6 +375,65 @@ function PrintView({ rec, mod, ws, schema, onClose }: { rec: Rec; mod: ModuleDef
         </div>
         {rec.status === 'void' && <h2 style={{ color: 'var(--danger)', textAlign: 'center', marginTop: 30 }}>VOID</h2>}
       </div>
+    </div>
+  )
+}
+
+function ApprovalBanner({ rec, mod }: { rec: Rec; mod: ModuleDef }) {
+  const { ws, schema, user, act, ctx } = useApp()
+  const rules = (schema.approvals ?? []).filter((r) => r.module === mod.id)
+  if (!rules.length) return null
+  type Item = { r: (typeof rules)[number]; state: 'approved' | 'self' | 'pending' | 'rejected' | 'needed'; by?: string }
+  const items = rules.flatMap((r): Item[] => {
+    if (r.action === 'post' && rec.status !== 'draft') return []
+    const needed = approvalNeeded(ctx, rec, r.action, r.stage)
+    if (needed?.id !== r.id) {
+      const done = (ws.data.approvals ?? []).find((a) => a.rule === r.id && a.record === rec.id && a.status === 'approved')
+      return done ? [{ r, state: 'approved', by: ws.users.find((u) => u.id === done.decidedBy)?.name }] : []
+    }
+    const pending = (ws.data.approvals ?? []).find((a) => a.rule === r.id && a.record === rec.id && a.status === 'pending')
+    const rejected = (ws.data.approvals ?? []).find((a) => a.rule === r.id && a.record === rec.id && a.status === 'rejected')
+    return [{ r, state: canApprove({ schema, user }, r) ? 'self' : pending ? 'pending' : rejected ? 'rejected' : 'needed' }]
+  })
+  if (!items.length) return null
+  const roleName = (id: string) => schema.roles.find((x) => x.id === id)?.name ?? 'an approver'
+  const what = (r: (typeof rules)[number]) => (r.action === 'post' ? 'posting' : `moving to “${mod.stages?.find((s) => s.id === r.stage)?.name}”`)
+  return (
+    <div className="stack" style={{ marginBottom: 14 }}>
+      {items.map(({ r, state, by }) => (
+        <div key={r.id} className={`row ${state === 'approved' ? 'ok-box' : state === 'rejected' ? 'error-box' : 'note'}`}>
+          <ShieldAlert size={16} />
+          <span className="grow">
+            <b>{r.name}</b>:{' '}
+            {state === 'approved' && `approved by ${by}.`}
+            {state === 'self' && `${what(r)} normally needs approval from ${roleName(r.approverRole)}. You can do it yourself.`}
+            {state === 'pending' && `waiting for ${roleName(r.approverRole)} to approve ${what(r)}.`}
+            {state === 'rejected' && `rejected. Change the record and request approval again.`}
+            {state === 'needed' && `${what(r)} needs approval from ${roleName(r.approverRole)}.`}
+          </span>
+          {(state === 'needed' || state === 'rejected') && <button className="secondary" onClick={() => act((c) => { requestApproval(c, findRecord(c.ws, rec.id)!, r.id); return true }, 'Approval requested')}><Send size={14} /> Request approval</button>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function Comments({ rec }: { rec: Rec }) {
+  const { ws, act } = useApp()
+  const [text, setText] = useState('')
+  const comments = (ws.data.comments ?? []).filter((c) => c.record === rec.id)
+  const name = (id: string) => ws.users.find((u) => u.id === id)?.name ?? '—'
+  return (
+    <div className="card">
+      <h2><MessageSquare size={17} /> Notes & comments</h2>
+      <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a note. Type @name to notify a colleague." dir="auto" style={{ minHeight: 64 }} />
+      <div className="row between" style={{ marginTop: 6 }}>
+        <span className="tiny muted">{ws.users.slice(0, 4).map((u) => `@${u.name.split(' ')[0]}`).join(' ')}</span>
+        <button onClick={() => { if (act((c) => { addComment(c, findRecord(c.ws, rec.id)!, text); return true })) setText('') }} disabled={!text.trim()}><Send size={14} /> Add note</button>
+      </div>
+      <ul className="timeline" style={{ marginTop: 10 }}>
+        {comments.map((c) => <li key={c.id}><b>{name(c.user)}</b> <span dir="auto">{c.text}</span><br /><span className="tiny muted">{new Date(c.at).toLocaleString()}</span></li>)}
+      </ul>
     </div>
   )
 }

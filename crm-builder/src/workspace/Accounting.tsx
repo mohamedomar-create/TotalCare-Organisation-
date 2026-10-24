@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Calculator, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { useApp } from './useApp'
-import { canPost, money, round2, trialBalance } from '../lib/engine'
+import { ageing, canPost, money, round2, trialBalance } from '../lib/engine'
 import { CHART } from '../lib/types'
 
 export default function Accounting() {
   const { ws, schema, user } = useApp()
-  const [tab, setTab] = useState<'tb' | 'journal' | 'payments'>('tb')
+  const [tab, setTab] = useState<'tb' | 'ageing' | 'journal' | 'payments'>('tb')
   if (!canPost({ schema, user })) return <div className="page">Only Admin and finance roles can see accounting.</div>
   const cur = schema.company.currency
   const tb = trialBalance(ws)
@@ -37,6 +37,7 @@ export default function Accounting() {
       </div>
       <div className="tabs-inline">
         <button className={tab === 'tb' ? 'on' : ''} onClick={() => setTab('tb')}>Trial balance</button>
+        <button className={tab === 'ageing' ? 'on' : ''} onClick={() => setTab('ageing')}>Ageing</button>
         <button className={tab === 'journal' ? 'on' : ''} onClick={() => setTab('journal')}>Journal</button>
         <button className={tab === 'payments' ? 'on' : ''} onClick={() => setTab('payments')}>Payments</button>
       </div>
@@ -49,6 +50,31 @@ export default function Accounting() {
             </tbody>
             <tfoot><tr><td>Total</td><td /><td className="num">{money(dr, cur)}</td><td className="num">{money(cr, cur)}</td><td /></tr></tfoot>
           </table>
+        </div>
+      )}
+      {tab === 'ageing' && (
+        <div className="stack">
+          {(['invoices', 'purchases'] as const).map((role) => {
+            const rows = ageing(ws, schema, role)
+            const sum = (k: 'current' | 'd30' | 'd60' | 'd90' | 'over90' | 'total') => round2(rows.reduce((s, r) => s + r[k], 0))
+            return (
+              <div key={role}>
+                <h2>{role === 'invoices' ? 'Who owes us (receivables)' : 'Who we owe (payables)'}</h2>
+                <div className="table-wrap">
+                  <table className="data">
+                    <thead><tr><th>{role === 'invoices' ? 'Customer' : 'Supplier'}</th><th className="num">Not yet due</th><th className="num">1–30 days</th><th className="num">31–60</th><th className="num">61–90</th><th className="num">90+ days</th><th className="num">Total</th></tr></thead>
+                    <tbody>
+                      {rows.length === 0 && <tr><td colSpan={7} className="muted">Nothing outstanding.</td></tr>}
+                      {rows.map((r) => (
+                        <tr key={r.party}><td><Link to={`/app/r/${r.party}`}>{r.name}</Link></td><td className="num">{money(r.current, cur)}</td><td className="num">{money(r.d30, cur)}</td><td className="num" style={{ color: r.d60 ? 'var(--warning)' : undefined }}>{money(r.d60, cur)}</td><td className="num" style={{ color: r.d90 ? 'var(--danger)' : undefined }}>{money(r.d90, cur)}</td><td className="num" style={{ color: r.over90 ? 'var(--danger)' : undefined, fontWeight: r.over90 ? 800 : undefined }}>{money(r.over90, cur)}</td><td className="num"><b>{money(r.total, cur)}</b></td></tr>
+                      ))}
+                    </tbody>
+                    {rows.length > 0 && <tfoot><tr><td>Total</td><td className="num">{money(sum('current'), cur)}</td><td className="num">{money(sum('d30'), cur)}</td><td className="num">{money(sum('d60'), cur)}</td><td className="num">{money(sum('d90'), cur)}</td><td className="num">{money(sum('over90'), cur)}</td><td className="num">{money(sum('total'), cur)}</td></tr></tfoot>}
+                  </table>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
       {tab === 'journal' && (

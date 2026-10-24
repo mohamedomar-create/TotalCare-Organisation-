@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { AlertTriangle, Bell, Boxes, Calculator, CheckCircle2, Languages, LayoutDashboard, LogOut, Search, Users, Wand2 } from 'lucide-react'
+import { AlertTriangle, Bell, Boxes, Calculator, CheckCircle2, ClipboardCheck, Languages, LayoutDashboard, LogOut, Search, Users, Wand2 } from 'lucide-react'
 import { Logo } from '../components/Logo'
 import { Icon } from '../components/Icon'
 import { showToast, useApp, useToast } from './useApp'
-import { can, canPost, list, recordTitle, runScheduled } from '../lib/engine'
+import { can, canApprove, canPost, list, recordTitle, runScheduled } from '../lib/engine'
 import { signOut, switchUser, update } from '../lib/store'
 import { useLang } from '../lib/i18n'
 
@@ -26,7 +26,9 @@ export default function Shell() {
   }, [act])
 
   const visible = schema.modules.filter((m) => can({ schema, user }, m.id, 'view'))
-  const notes = ws.data.notes.filter((n) => !n.role || role?.admin || (n.role === 'finance' && role?.finance))
+  // Notes addressed to a person go only to them; notes for a role go to that role (and Admin); the rest go to everyone.
+  const notes = ws.data.notes.filter((n) => (n.user ? n.user === user.id : !n.role || role?.admin || n.role === user.roleId || (n.role === 'finance' && role?.finance)))
+  const toApprove = (ws.data.approvals ?? []).filter((a) => a.status === 'pending' && (() => { const r = (schema.approvals ?? []).find((x) => x.id === a.rule); return r ? canApprove({ schema, user }, r) : false })()).length
   const unread = notes.filter((n) => !n.read).length
   const results = q.trim().length > 1
     ? visible.flatMap((m) => list(ws, m.id).filter((r) => recordTitle(ws, schema, r).toLowerCase().includes(q.toLowerCase())).slice(0, 4).map((r) => ({ r, m }))).slice(0, 10)
@@ -48,6 +50,7 @@ export default function Shell() {
         <div className="sect">Operations</div>
         {schema.modules.some((m) => m.role === 'products') && <NavLink to="/app/inventory"><Boxes size={18} /> Stock</NavLink>}
         {canPost({ schema, user }) && <NavLink to="/app/accounting"><Calculator size={18} /> Accounting</NavLink>}
+        {(schema.approvals?.length ?? 0) > 0 && <NavLink to="/app/approvals"><ClipboardCheck size={18} /> Approvals {toApprove > 0 && <span className="pill red tiny" style={{ marginInlineStart: 'auto' }}>{toApprove}</span>}</NavLink>}
         {role?.admin && <NavLink to="/app/team"><Users size={18} /> Team</NavLink>}
         {role?.admin && <NavLink to="/builder"><Wand2 size={18} /> Customise system</NavLink>}
       </aside>
@@ -69,13 +72,13 @@ export default function Shell() {
           <span className="grow" />
           <button className="ghost" onClick={() => setLang(lang === 'en' ? 'ar' : 'en')}><Languages size={16} /> {lang === 'en' ? 'ع' : 'EN'}</button>
           <div style={{ position: 'relative' }}>
-            <button className="ghost" onClick={() => { setBell(!bell); if (!bell) update((s) => s.workspaces[ws.id].data.notes.forEach((n) => (n.read = true))) }} aria-label="Notifications">
+            <button className="ghost" onClick={() => { setBell(!bell); if (!bell) { const ids = new Set(notes.map((n) => n.id)); update((s) => s.workspaces[ws.id].data.notes.forEach((n) => { if (ids.has(n.id)) n.read = true })) } }} aria-label="Notifications">
               <Bell size={18} />{unread > 0 && <span className="pill red tiny">{unread}</span>}
             </button>
             {bell && (
               <div className="card notif">
                 {notes.length === 0 && <div className="muted">No notifications yet.</div>}
-                {notes.slice(0, 30).map((n) => <div key={n.id} className={n.read ? '' : 'unread'}>{n.message}<br /><span className="tiny muted">{new Date(n.at).toLocaleString()}</span></div>)}
+                {notes.slice(0, 30).map((n) => <div key={n.id} className={n.read ? '' : 'unread'} style={{ cursor: n.record ? 'pointer' : undefined }} onClick={() => { if (n.record) { setBell(false); nav(`/app/r/${n.record}`) } }}>{n.message}<br /><span className="tiny muted">{new Date(n.at).toLocaleString()}</span></div>)}
               </div>
             )}
           </div>

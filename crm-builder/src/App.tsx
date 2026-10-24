@@ -13,6 +13,7 @@ const RecordPage = lazy(() => import('./workspace/RecordPage'))
 const Inventory = lazy(() => import('./workspace/Inventory'))
 const Accounting = lazy(() => import('./workspace/Accounting'))
 const Team = lazy(() => import('./workspace/Team'))
+const Approvals = lazy(() => import('./workspace/Approvals'))
 import { currentUser, currentWorkspace, useStore } from './lib/store'
 
 /** Sends each person to the right step of the journey: register → onboarding → builder → app. */
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="inventory" element={<Inventory />} />
         <Route path="accounting" element={<Accounting />} />
         <Route path="team" element={<Team />} />
+        <Route path="approvals" element={<Approvals />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

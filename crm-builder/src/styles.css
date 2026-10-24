@@ -422,3 +422,13 @@ table.data tfoot td { font-weight: 800; background: var(--surface-2); }
   .mock-inner { grid-template-columns: 1fr; }
   .mock-side { display: none; }
 }
+
+/* calendar view */
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.cal-h { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); text-align: center; padding-bottom: 4px; }
+.cal-d { min-height: 96px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 6px; display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+.cal-d.today { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-100); }
+.cal-n { font-size: 0.78rem; font-weight: 700; color: var(--text-2); }
+.cal-ev { font-size: 0.72rem; background: #fff; border-inline-start: 3px solid; border-radius: 5px; padding: 2px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; box-shadow: var(--shadow); }
+.kcard.rotting { background: #fff7f7; }
+@media (max-width: 760px) { .cal-d { min-height: 60px; } .cal-ev { display: none; } .cal-d:has(.cal-ev) .cal-n { color: var(--primary); text-decoration: underline; } }

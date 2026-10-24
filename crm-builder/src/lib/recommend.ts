@@ -4,7 +4,7 @@ import { clone, uid } from './schema'
 import type { Feature, Template } from './templates'
 import { TEMPLATES } from './templates'
 import { buildModule, MODULE_IDS, type ModuleSpec } from './roles'
-import { buildReports, buildRoles, buildWorkflows, type TeamInput } from './packs'
+import { addSmartDefaults, buildReports, buildRoles, buildWorkflows, type TeamInput } from './packs'
 
 export interface Answers {
   companyName: string
@@ -178,5 +178,6 @@ export function generateSchema(t: Template, a: Answers): AppSchema {
   schema.reports = buildReports(schema, a.challenges)
   schema.workflows = buildWorkflows(schema, a.challenges)
   schema.roles = buildRoles(schema, a.teams)
+  addSmartDefaults(schema)
   return schema
 }
