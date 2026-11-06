@@ -1,36 +1,54 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Copy, Megaphone, MessageCircle, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { useAdminData } from '../lib/useAdminData'
 import { useDirectory } from '../lib/useDirectory'
-import { isV2 } from '../lib/results'
-import { MY_DEPARTMENT_EXTRA, SURVEY_DEPARTMENTS, type SurveyAnswers } from '../lib/survey'
+import { MY_DEPARTMENT_EXTRA, SURVEY_DEPARTMENTS } from '../lib/survey'
+import type { Profile } from '../lib/types'
 
 const INVITE_AR = 'زمايلنا في TotalCare 👋 رأيكم مهم جداً. الاستبيان بياخد حوالي ٨ دقايق، وتقدر تبعته من غير اسمك خالص. أحسن فكرة هيتم مكافأتها وتنفيذها.'
 const INVITE_EN = 'Dear TotalCare team, your opinion matters. The survey takes about 8 minutes and you can send it anonymously. The best idea will be rewarded and implemented.'
 
 export default function AdminCoverage() {
-  const { submissions, profiles, loading } = useAdminData()
+  // Counts and names only: survey admins can use this page without seeing any answers.
+  const [profiles, setProfiles] = useState<Profile[]>([])
+  const [counts, setCounts] = useState<Map<string, number>>(new Map())
+  const [loading, setLoading] = useState(true)
+  const [teamCode, setTeamCode] = useState<string | null>(null)
   const { departments, people } = useDirectory()
   const [participants, setParticipants] = useState<Set<string>>(new Set())
   const [copied, setCopied] = useState('')
 
   useEffect(() => {
-    supabase.rpc('survey_participants').then(({ data }) => setParticipants(new Set(((data ?? []) as { user_id: string }[]).map((r) => r.user_id))))
-  }, [submissions.length])
+    void Promise.all([
+      supabase.from('profiles').select('*'),
+      supabase.rpc('survey_dept_counts'),
+      supabase.rpc('survey_participants'),
+      supabase.from('invitations').select('code, max_uses, uses, department_id, revoked, expires_at').gte('max_uses', 100).order('created_at', { ascending: false }),
+    ]).then(([p, c, part, inv]) => {
+      type Inv = { code: string; max_uses: number; uses: number; department_id: string | null; revoked: boolean; expires_at: string }
+      const open = ((inv.data ?? []) as Inv[]).find((i) => !i.department_id && !i.revoked && i.uses < i.max_uses && new Date(i.expires_at) > new Date())
+      setTeamCode(open?.code ?? null)
+      setProfiles((p.data ?? []) as Profile[])
+      setCounts(new Map(((c.data ?? []) as { dept: string; answers: number }[]).map((r) => [r.dept, Number(r.answers)])))
+      setParticipants(new Set(((part.data ?? []) as { user_id: string }[]).map((r) => r.user_id)))
+      setLoading(false)
+    })
+  }, [])
 
-  const sent = submissions.filter((s) => s.status === 'submitted' && isV2(s))
-  const link = typeof window !== 'undefined' ? window.location.origin : ''
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  // The company-wide invitation link opens the survey in one tap; without it, people need a company e-mail.
+  const link = teamCode ? `${origin}/join/${teamCode}` : origin
   const message = `${INVITE_AR}\n\n${INVITE_EN}\n\n${link}`
   const deptName = useMemo(() => new Map(departments.map((d) => [d.id, d.name.toLowerCase()])), [departments])
 
   // Headcount per survey department, matched by department name in the directory.
   const rows = [...SURVEY_DEPARTMENTS, ...MY_DEPARTMENT_EXTRA].map((d) => {
-    const answered = sent.filter((s) => (s.answers as SurveyAnswers)?.my_dept === d.key).length
+    const answered = counts.get(d.key) ?? 0
     const headcount = people.filter((p) => p.department_id && deptName.get(p.department_id) === d.name.toLowerCase()).length
     return { ...d, answered, headcount, pct: headcount ? Math.min(100, Math.round((answered / headcount) * 100)) : null }
   })
-  const notGiven = sent.filter((s) => !(s.answers as SurveyAnswers)?.my_dept).length
+  const notGiven = counts.get('') ?? 0
   const missing = profiles.filter((p) => p.active !== false && !participants.has(p.id))
 
   function copy(text: string, what: string) {
@@ -74,7 +92,7 @@ export default function AdminCoverage() {
             <a className="button" href={`https://wa.me/?text=${encodeURIComponent(message)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} /> Share on WhatsApp</a>
             <button type="button" className="secondary" onClick={() => copy(message, 'invite')}><Copy size={15} /> {copied === 'invite' ? 'Copied' : 'Copy message'}</button>
           </div>
-          <p className="muted small">Colleagues without a company e-mail need a personal link: create one on <a href="/admin/invitations">Invitations</a> and send it on WhatsApp.</p>
+          {teamCode ? <p className="muted small">This uses your link for everyone: one tap and they’re in the survey, no e-mail needed. Personal links are on <Link to="/admin/invitations">Invitations</Link>.</p> : <p className="notice small">This link only works for company e-mails. Create the <b>link for everyone</b> on <Link to="/admin/invitations">Invitations</Link> so colleagues without e-mail can join in one tap.</p>}
         </section>
       </div>
 

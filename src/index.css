@@ -1199,3 +1199,15 @@ a.kpi:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
 .req { color: #dc2626; font-weight: 800; margin: 0 2px; }
 .dept-tab.partial { border-style: dashed; }
 .missing-card { margin-top: 12px; }
+
+/* Roles */
+.role-guide { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin: 12px 0; }
+.role-card { padding: 12px 14px; margin: 0; border-top: 3px solid #94a3b8; }
+.role-card p { margin: 4px 0 0; }
+.role-admin { border-top-color: #7c3aed; }
+.role-distributor { border-top-color: #0d9488; }
+.role-management { border-top-color: #2563eb; }
+.tone-violet { background: #ede9fe; color: #5b21b6; }
+.everyone-link { border: 2px solid #0d9488; background: #f0fdfa; }
+.everyone-url { word-break: break-all; background: #fff; border: 1px dashed #5eead4; border-radius: 8px; padding: 8px 10px; font-size: 14px; }
+.join-start { width: 100%; font-size: 1.1rem; padding: 16px; margin-top: 8px; }

@@ -61,6 +61,7 @@ Everyone can take part, with or without a company e-mail:
 - **No e-mail at all** (drivers, technicians, warehouse): the admin creates a personal invitation with the person's name, mobile and department and sends it with the **WhatsApp** button. The person opens the link on their phone, checks their name and taps **Join** — no e-mail or password. The phone stays signed in.
 - **Team link**: one link for a WhatsApp group, limited to a number of people and days. Each person types their own name. Team links only create staff members.
 - Personal links work once. Invitations expire after 30 days (extendable). A cancelled or used link stops working. If someone changes phone, cancel the old invitation and send a new one.
+- **One tap:** opening an invitation link shows a welcome screen with one button, *Start the survey*. It signs the phone in, joins, and opens the first question. The name is optional. The **link for everyone** (Invitations page) is one link for all WhatsApp groups (up to 500 people, 30 days).
 - Until a person has joined through an invitation they can't start the survey, use Speak up, send feedback or support initiatives — enforced by the database (`profiles.active`).
 
 **One-time Supabase setting for invitation links:** Authentication → Sign In / Providers → turn on **Allow anonymous sign-ins** (recommended: also turn on CAPTCHA protection under Authentication → Attack Protection). E-mail invitations and company e-mails work without this setting.
@@ -70,7 +71,8 @@ Everyone can take part, with or without a company e-mail:
 | Role | Can see |
 |---|---|
 | staff | **Only their own** named answers (anonymous answers can't be seen by anyone as theirs), published initiatives with support counts, and replies to their own Speak-up case codes |
-| admin | All answers — the name only on answers sent **with a name**; anonymous answers and Speak-up messages have no name stored at all. Who has taken part (never which answers). Manages initiatives, the directory, roles and reports |
+| super admin (`admin`) | **mohamed.omar@totalcareegypt.com**, set automatically at sign-in and locked: nobody can change or deactivate this account's role, and only this account can make another admin. All answers — the name only on answers sent **with a name**; anonymous answers and Speak-up messages have no name stored at all. Who has taken part (never which answers). Manages initiatives, the directory, roles and reports |
+| survey admin (`distributor`) | Spreads the survey: creates and sends invitation links (staff only), the link for everyone, the people list with phones, who has joined and who hasn't answered yet, and answer **counts** per department. **No answers, results, Speak-up messages or roles.** Assigned by the super admin on **Users & roles** |
 | management | **Published reports** (no names; departments with fewer than 3 responses merged) and all initiatives, including volunteers' names |
 
 Staff are told this in the survey. The rules are enforced by Postgres row-level security and database functions (`supabase/migrations/0001_init.sql`, `0006_survey_v2.sql`), not only by the UI. `npm test` checks the answer checks and results; the migrations were also tested in a local Postgres against these rules (anonymous rows have no author and day-only dates, staff can't read Speak-up messages or others' support, proposals stay hidden until approved). Generated reports are drafts: the admin should read them and remove anything in the text that could identify a person before publishing.
@@ -78,7 +80,7 @@ Staff are told this in the survey. The rules are enforced by Postgres row-level 
 ## Setup
 
 1. Create a Supabase project at https://supabase.com.
-2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives; `0007_invitations.sql` adds invitations). Optionally run `supabase/seed.sql` for example data.
+2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives; `0007_invitations.sql` adds invitations; `0008_small_team_privacy.sql` keeps anonymous answers safe in a small team; `0009_roles_super_admin.sql` adds the super admin and survey admins and one-tap joining). Optionally run `supabase/seed.sql` for example data.
 3. Under **Authentication → URL configuration**, set the Site URL to where the app will be hosted (for local development, `http://localhost:5173`).
 4. Copy `.env.example` to `.env` and fill in the project URL and anon key from **Project Settings → API**.
 5. Install and run:
@@ -86,11 +88,7 @@ Staff are told this in the survey. The rules are enforced by Postgres row-level 
    npm install
    npm run dev
    ```
-6. Sign in once with your own work e-mail, then make yourself admin in the SQL editor:
-   ```sql
-   update public.profiles set role = 'admin' where email = 'you@totalcareegypt.com';
-   ```
-   After that, assign `management` and other roles from the **Users** page.
+6. Sign in with mohamed.omar@totalcareegypt.com: that account becomes the super admin automatically (`0009_roles_super_admin.sql`; to change the owner, edit `private.owner_email()` there and `OWNER_EMAIL` in `src/lib/roles.ts`). Then assign **Survey admin** and other roles on the **Users & roles** page.
 
 `@totalcareegypt.com` addresses can sign up directly; everyone else needs an invitation (see above). The database enforces this in `handle_new_user` (`0007_invitations.sql`). To change the company domain, edit it there and in `VITE_ALLOWED_DOMAIN`.
 

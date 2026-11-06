@@ -2,16 +2,18 @@
 // Demo mode only (VITE_DEMO=1): answers every Supabase call in the browser from sample data,
 // so the survey and dashboard can be tried with nothing saved to TotalCare.
 const REF = 'ijsxhfvtcvvvjqxwvjlo'
-const STORE = 'tc-demo-v1'
+const STORE = 'tc-demo-v2'
 const ADMIN = { id: 'aaaaaaaa-0000-0000-0000-000000000001', email: 'mohamed.omar@totalcareegypt.com', full_name: 'Mohamed Omar', role: 'admin' }
 const STAFF = { id: 'bbbbbbbb-0000-0000-0000-000000000002', email: 'sara.ali@totalcareegypt.com', full_name: 'Sara Ali', role: 'staff' }
+const HELPER = { id: 'cccccccc-0000-0000-0000-000000000003', email: 'nour.hassan@totalcareegypt.com', full_name: 'Nour Hassan', role: 'distributor' }
+const TEAM_CODE = 'TCALL2026'
 const DEPTS = ['marketing', 'installations', 'collections', 'accounting', 'sales', 'maintenance', 'purchasing', 'hr_legal']
 let seq = 0
 const uuid = () => `00000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`
 const now = () => new Date().toISOString()
 
 const db = {
-  profiles: [ADMIN, STAFF, ...['Mona Adel', 'Karim Mostafa', 'Hana Farouk', 'Omar Khaled', 'Laila Samir'].map((n, i) => ({ id: uuid(), email: `p${i}@totalcareegypt.com`, full_name: n, role: 'staff' }))],
+  profiles: [ADMIN, STAFF, HELPER, ...['Mona Adel', 'Karim Mostafa', 'Hana Farouk', 'Omar Khaled', 'Laila Samir'].map((n, i) => ({ id: uuid(), email: `p${i}@totalcareegypt.com`, full_name: n, role: 'staff' }))],
   departments: [], people: [], submissions: [], receipts: [], safe_voice: [], initiatives: [], initiative_updates: [], initiative_supporters: [],
   submission_reviews: [], feedback: [], app_settings: [{ id: 1, submissions_per_person: 1 }], invitations: [],
 }
@@ -67,10 +69,16 @@ for (let i = 0; i < 24; i++) {
   })
 }
 db.profiles.push(...Array.from({ length: 14 }, (_, k) => ({ id: uuid(), email: `x${k}@totalcareegypt.com`, full_name: `Colleague ${k + 1}`, role: 'staff', active: true })))
+db.invitations.push(
+  { id: uuid(), code: TEAM_CODE, full_name: '', email: null, phone: '', department_id: null, role: 'staff', max_uses: 500, uses: 9, expires_at: new Date(Date.now() + 25 * 86400000).toISOString(), revoked: false, used_by: null, last_used_at: null, created_at: now() },
+  { id: uuid(), code: 'HASSAN2026', full_name: 'Hassan Mahmoud', email: null, phone: '01012345678', department_id: null, role: 'staff', max_uses: 1, uses: 0, expires_at: new Date(Date.now() + 30 * 86400000).toISOString(), revoked: false, used_by: null, last_used_at: null, created_at: now() },
+)
 let currentUser = STAFF
+const distributes = () => currentUser.role === 'admin' || currentUser.role === 'distributor'
 function rows(table) {
   if (table === 'submissions' && currentUser.role !== 'admin') return db.submissions.filter((s) => s.author_id === currentUser.id)
-  if (table === 'profiles' && currentUser.role !== 'admin') return db.profiles.filter((p) => p.id === currentUser.id)
+  if (table === 'profiles' && !distributes()) return db.profiles.filter((p) => p.id === currentUser.id)
+  if (table === 'invitations' && !distributes()) return []
   if (table === 'safe_voice' && currentUser.role !== 'admin') return []
   if (table === 'receipts') return db.receipts
   return db[table] ?? []
@@ -85,7 +93,7 @@ function applyFilters(list, params) {
       const x = r[k] === null || r[k] === undefined ? 'null' : String(r[k])
       if (m[1] === 'eq') return x === m[2]
       if (m[1] === 'neq') return x !== m[2]
-      if (m[1] === 'gte') return x >= m[2]
+      if (m[1] === 'gte') return x !== '' && !isNaN(+x) && !isNaN(+m[2]) ? +x >= +m[2] : x >= m[2]
       return true
     })
   }
@@ -95,7 +103,13 @@ function applyFilters(list, params) {
 const rpc = {
   my_submission_allowance: () => ({ allowed: 1, used: db.submissions.filter((s) => s.author_id === currentUser.id).length + db.receipts.filter((r) => r.user_id === currentUser.id).length }),
   survey_progress: () => ({ responses: db.submissions.filter((s) => s.status === 'submitted').length, people: db.profiles.length }),
-  survey_participants: () => currentUser.role === 'admin' ? [...db.submissions.filter((s) => s.author_id && s.status === 'submitted').map((s) => ({ user_id: s.author_id })), ...db.receipts.map((r) => ({ user_id: r.user_id }))] : [],
+  survey_dept_counts: () => {
+    if (!distributes()) return []
+    const m = new Map()
+    for (const s of db.submissions) if (s.status === 'submitted' && s.answers?.v === 2) m.set(s.answers.my_dept ?? '', (m.get(s.answers.my_dept ?? '') ?? 0) + 1)
+    return [...m].map(([dept, answers]) => ({ dept, answers }))
+  },
+  survey_participants: () => distributes() ? [...db.submissions.filter((s) => s.author_id && s.status === 'submitted').map((s) => ({ user_id: s.author_id })), ...db.receipts.map((r) => ({ user_id: r.user_id }))] : [],
   staff_list: () => db.profiles.map((p) => ({ id: p.id, full_name: p.full_name, job_title: '', department_id: null, joined_on: null })),
   initiative_counts: () => {
     const m = new Map()
@@ -126,6 +140,7 @@ const rpc = {
     const inv = db.invitations.find((i) => i.code === p_code.trim().toUpperCase() && !i.revoked && i.uses < i.max_uses)
     if (!inv) throw new Error('This invitation code is not valid any more. Ask HR for a new one.')
     const me = db.profiles.find((p) => p.id === currentUser.id)
+    if (me.active !== false) return null
     Object.assign(me, { active: true, full_name: p_name || inv.full_name, phone: inv.phone })
     inv.uses++
     return null
@@ -143,12 +158,14 @@ function defaults(table) {
 
 
 // ---- persistence (per viewer, best effort) ----
+let view = 'staff' // staff | distributor | admin | invite
 try {
   const saved = JSON.parse(localStorage.getItem(STORE) || 'null')
   if (saved?.db) { Object.assign(db, saved.db); seq = saved.seq || seq }
-  if (saved?.role === 'admin') currentUser = db.profiles.find((p) => p.id === ADMIN.id) || ADMIN
+  if (saved?.view) view = saved.view
+  currentUser = db.profiles.find((p) => p.id === saved?.user) || STAFF
 } catch { /* private window: start fresh */ }
-const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ db, seq, role: currentUser.role === 'admin' ? 'admin' : 'staff' })) } catch { /* ignore */ } }
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ db, seq, view, user: currentUser.id })) } catch { /* ignore */ } }
 
 function seedSession(u) {
   try {
@@ -156,12 +173,17 @@ function seedSession(u) {
     localStorage.setItem(`sb-${REF}-auth-token`, JSON.stringify({ access_token: 'x.y.z', token_type: 'bearer', expires_in: 86400, expires_at: exp, refresh_token: 'r', user: { id: u.id, email: u.email, aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {} } }))
   } catch { /* ignore */ }
 }
-seedSession(currentUser)
+function clearSession() { try { localStorage.removeItem(`sb-${REF}-auth-token`) } catch { /* ignore */ } }
+if (view === 'invite' && !db.profiles.some((p) => p.id === currentUser.id && p.email.endsWith('@invite.local'))) clearSession()
+else seedSession(currentUser)
 
 export const demo = {
-  role: () => (currentUser.role === 'admin' ? 'admin' : 'staff'),
-  switchTo(role) {
-    currentUser = role === 'admin' ? db.profiles.find((p) => p.id === ADMIN.id) : db.profiles.find((p) => p.id === STAFF.id)
+  view: () => view,
+  start: () => (view === 'invite' && !currentUser.email.endsWith('@invite.local') ? `/join/${TEAM_CODE}` : view === 'admin' ? '/admin' : view === 'distributor' ? '/admin/invitations' : '/'),
+  switchTo(next) {
+    view = next
+    if (next === 'invite') { currentUser = STAFF; save(); clearSession(); return }
+    currentUser = db.profiles.find((p) => p.id === (next === 'admin' ? ADMIN.id : next === 'distributor' ? HELPER.id : STAFF.id))
     save(); seedSession(currentUser)
   },
   reset() { try { localStorage.removeItem(STORE) } catch { /* ignore */ } },
@@ -175,6 +197,15 @@ async function handle(req) {
   const method = req.method
   const text = method === 'GET' || method === 'HEAD' ? '' : await req.text()
   const body = text ? JSON.parse(text) : {}
+  if (path.startsWith('/auth/v1/signup')) {
+    const guest = { id: uuid(), email: `guest-${seq}@invite.local`, full_name: '', role: 'staff', active: false }
+    db.profiles.push(guest)
+    currentUser = guest
+    save()
+    const exp = Math.floor(Date.now() / 1000) + 86400
+    return reply({ access_token: 'g.g.g', token_type: 'bearer', expires_in: 86400, expires_at: exp, refresh_token: 'rg', user: { id: guest.id, aud: 'authenticated', role: 'authenticated', is_anonymous: true, app_metadata: {}, user_metadata: {} } })
+  }
+  if (path.startsWith('/auth/v1/logout')) { clearSession(); return reply({}, 204) }
   if (path.startsWith('/auth/v1/user')) return reply({ id: currentUser.id, email: currentUser.email, aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {} })
   if (path.startsWith('/auth/v1/token')) {
     const exp = Math.floor(Date.now() / 1000) + 86400

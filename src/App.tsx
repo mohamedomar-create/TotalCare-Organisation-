@@ -55,6 +55,7 @@ import Profile from './pages/Profile'
 import AdminCommunity from './pages/AdminCommunity'
 import { levelFor, useMyPoints } from './lib/community'
 import { FEATURES } from './lib/features'
+import { ROLE_LABEL, canDistribute } from './lib/roles'
 import SurveyHome from './pages/SurveyHome'
 import SpeakUp from './pages/SpeakUp'
 import Initiatives from './pages/Initiatives'
@@ -78,6 +79,7 @@ export default function App() {
   const { session, profile, loading } = useAuth()
   const role = profile?.role ?? 'staff'
   const isAdmin = role === 'admin'
+  const isDistributor = canDistribute(role)
   const counts = useAdminCounts(Boolean(session) && isAdmin)
   const { balance, earned } = useMyPoints(session?.user.id)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -153,13 +155,19 @@ export default function App() {
             </>
           )}
 
+          {isDistributor && (
+            <>
+              <p className="nav-section">Send the survey · وزّع الاستبيان</p>
+              <NavLink to="/admin/invitations"><Send size={18} /> Invitations</NavLink>
+              <NavLink to="/admin/coverage"><Megaphone size={18} /> Coverage</NavLink>
+            </>
+          )}
+
           {isAdmin && (
             <>
-              <p className="nav-section">Admin</p>
+              <p className="nav-section">Super admin</p>
               <NavLink to="/admin" end><BarChart3 size={18} /> Results</NavLink>
               <NavLink to="/admin/inbox"><Inbox size={18} /> Responses <Badge n={counts.submissions + counts.feedback} /></NavLink>
-              <NavLink to="/admin/coverage"><Megaphone size={18} /> Coverage</NavLink>
-              <NavLink to="/admin/invitations"><Send size={18} /> Invitations</NavLink>
               <NavLink to="/admin/safe-voice"><ShieldCheck size={18} /> Speak-up inbox</NavLink>
               {FEATURES.community && <NavLink to="/admin/community"><Sparkles size={18} /> Community</NavLink>}
               <NavLink to="/admin/directory"><Settings2 size={18} /> Departments & people</NavLink>
@@ -175,7 +183,7 @@ export default function App() {
             <div className="avatar small">{initials(name)}</div>
             <div className="me-text">
               <div className="me-name">{name}</div>
-              <div className="muted small">{FEATURES.community ? `${levelFor(earned).emoji} ${levelFor(earned).name} · ` : ''}{role}</div>
+              <div className="muted small">{FEATURES.community ? `${levelFor(earned).emoji} ${levelFor(earned).name} · ` : ''}{ROLE_LABEL[role] ?? role}</div>
             </div>
             <button type="button" className="icon-btn" title="Sign out" onClick={() => supabase.auth.signOut()}><LogOut size={17} /></button>
           </div>
@@ -190,8 +198,8 @@ export default function App() {
           <Route path="/vision/:id" element={<VisionWizard />} />
           <Route path="/speak-up" element={<SpeakUp />} />
           <Route path="/initiatives" element={<Initiatives />} />
-          <Route path="/admin/coverage" element={<RequireRole roles={['admin']}><AdminCoverage /></RequireRole>} />
-          <Route path="/admin/invitations" element={<RequireRole roles={['admin']}><AdminInvitations /></RequireRole>} />
+          <Route path="/admin/coverage" element={<RequireRole roles={['admin', 'distributor']}><AdminCoverage /></RequireRole>} />
+          <Route path="/admin/invitations" element={<RequireRole roles={['admin', 'distributor']}><AdminInvitations /></RequireRole>} />
           <Route path="/admin/safe-voice" element={<RequireRole roles={['admin']}><AdminSafeVoice /></RequireRole>} />
           {FEATURES.orgChart && <Route path="/org" element={<OrgChart />} />}
           {FEATURES.orgChart && <Route path="/directory" element={<Directory />} />}

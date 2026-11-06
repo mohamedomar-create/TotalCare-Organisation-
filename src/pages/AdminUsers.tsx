@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { Profile, Role } from '../lib/types'
-
-const ROLE_HELP: Record<Role, string> = {
-  staff: 'Org chart, directory, own submissions',
-  management: 'Also reads published anonymised reports',
-  admin: 'Everything, including names on submissions',
-}
+import { ROLE_HELP, ROLE_LABEL, isOwner } from '../lib/roles'
 
 export default function AdminUsers() {
   const { profile: me } = useAuth()
@@ -46,7 +42,8 @@ export default function AdminUsers() {
   }, [])
 
   async function setRole(user: Profile, role: Role) {
-    if (role === 'admin' && !confirm(`Make ${user.email} an admin? Admins can see names on all submissions.`)) return
+    if (role === 'admin' && !confirm(`Make ${user.full_name || user.email} a super admin? They will see all answers and names.`)) return
+    if (role === 'distributor' && !confirm(`Make ${user.full_name || user.email} a survey admin? They can create invitation links and see who hasn’t answered, but no answers.`)) return
     const { error } = await supabase.from('profiles').update({ role }).eq('id', user.id)
     setError(error?.message ?? null)
     await load()
@@ -54,8 +51,14 @@ export default function AdminUsers() {
 
   return (
     <div className="page">
-      <h1>Users & roles</h1>
-      <p className="muted">People appear here after their first sign-in. Invite people without a company e-mail on the <a href="/admin/invitations">Invitations</a> page. Everyone can send {perPerson} survey{perPerson === 1 ? '' : 's'} (change this on the dashboard). Use <strong>+1</strong> to let one person send another.</p>
+      <h1>Users & roles <span className="ar-title" lang="ar">المستخدمين والصلاحيات</span></h1>
+      <div className="role-guide">
+        {(['admin', 'distributor', 'management', 'staff'] as Role[]).map((r) => (
+          <div key={r} className={`card role-card role-${r}`}><b>{ROLE_LABEL[r]}</b><p className="muted small">{ROLE_HELP[r]}</p></div>
+        ))}
+      </div>
+      <p className="notice small">To let someone help send the survey to everyone, set their role to <b>Survey admin</b>. They get the Invitations and Coverage pages only.</p>
+      <p className="muted">People appear here after their first sign-in. Invite people without a company e-mail on the <Link to="/admin/invitations">Invitations</Link> page. Everyone can send {perPerson} survey{perPerson === 1 ? '' : 's'} (change this on the dashboard). Use <strong>+1</strong> to let one person send another.</p>
       {error && <p className="error">{error}</p>}
       <table>
         <thead><tr><th>Name</th><th>E-mail</th><th>Role</th><th>Surveys</th></tr></thead>
@@ -65,11 +68,16 @@ export default function AdminUsers() {
               <td>{u.full_name || '—'}{u.active === false && <span className="pill tone-amber">not joined yet</span>}</td>
               <td>{u.email.endsWith('@invite.local') ? <span className="muted">{u.phone || 'joined by invitation link'}</span> : u.email}</td>
               <td>
-                <select value={u.role} disabled={u.id === me?.id} onChange={(e) => void setRole(u, e.target.value as Role)}>
-                  {(Object.keys(ROLE_HELP) as Role[]).map((r) => (
-                    <option key={r} value={r}>{r} — {ROLE_HELP[r]}</option>
-                  ))}
-                </select>
+                {isOwner(u.email) ? (
+                  <span className="pill tone-violet">Super admin · owner</span>
+                ) : (
+                  <select value={u.role} disabled={u.id === me?.id} onChange={(e) => void setRole(u, e.target.value as Role)}>
+                    {(['staff', 'management', 'distributor', 'admin'] as Role[])
+                      // Only the owner can make another super admin (the database checks this too).
+                      .filter((r) => r !== 'admin' || u.role === 'admin' || isOwner(me?.email))
+                      .map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+                  </select>
+                )}
               </td>
               <td className="nowrap">
                 <span className={(used.get(u.id) ?? 0) >= perPerson + (extra.get(u.id) ?? 0) ? 'pill status-actioned' : 'pill'}>
