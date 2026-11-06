@@ -190,9 +190,6 @@ export const MIN_GROUP = 3
 
 export interface Segment {
   dept?: string
-  level?: string
-  tenure?: string
-  location?: string
   mode?: 'named' | 'anonymous'
 }
 
@@ -200,9 +197,6 @@ export function applySegment(subs: Submission[], seg: Segment) {
   return subs.filter((s) => {
     const a = ans(s)
     if (seg.dept && a.my_dept !== seg.dept) return false
-    if (seg.level && s.role_level !== seg.level) return false
-    if (seg.tenure && a.tenure !== seg.tenure) return false
-    if (seg.location && a.location !== seg.location) return false
     if (seg.mode === 'anonymous' && !s.anonymous) return false
     if (seg.mode === 'named' && s.anonymous) return false
     return true
@@ -367,7 +361,6 @@ export function audit(subs: Submission[]): Audit {
   }
   const has = (fn: (a: SurveyAnswers) => boolean) => pct(subs.filter((s) => fn(ans(s))).length)
   const completeness = [
-    { label: 'Said their department', pct: has((a) => Boolean(a.my_dept)) },
     { label: 'Rated at least one department', pct: has((a) => Object.values(a.depts ?? {}).some((r) => typeof r.score === 'number')) },
     { label: 'Covered all 8 departments (rated or skipped)', pct: has((a) => SURVEY_DEPARTMENTS.every((d) => a.depts?.[d.key]?.skip || typeof a.depts?.[d.key]?.score === 'number')) },
     { label: 'Wrote at least one weakness', pct: has((a) => Object.values(a.depts ?? {}).some((r) => r.weaknesses?.trim())) },

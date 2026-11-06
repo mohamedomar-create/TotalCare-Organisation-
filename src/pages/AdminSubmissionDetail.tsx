@@ -63,7 +63,7 @@ export default function AdminSubmissionDetail() {
           </p>
           {sub.quality?.score !== undefined && <p className="muted small">Answer quality: <b>{sub.quality.score}/100</b>{sub.quality.straight_lined ? ' · same score everywhere' : ''}{sub.quality.rushed ? ` · answered in ${sub.quality.minutes} min` : ''}{sub.quality.contradictions ? ` · ${sub.quality.contradictions} check(s) raised` : ''}</p>}
           {(sub.answers as SurveyAnswers | undefined)?.v === 2
-            ? <SurveySummary answers={sub.answers as SurveyAnswers} level={sub.role_level} />
+            ? <SurveySummary answers={sub.answers as SurveyAnswers} />
             : <SubmissionSummary sub={sub} departmentName={deptName} />}
         </div>
         <aside className="card detail-side">

@@ -42,6 +42,7 @@ const filled = (s?: string) => Boolean(s && s.trim())
 export function findIssues(a: SurveyAnswers, myName = ''): Issue[] {
   const out: Issue[] = []
   const depts = a.depts ?? {}
+  if (!a.my_dept) out.push({ key: 'no_dept', severity: 'hard', step: 0, message: 'Choose your department.', ar: 'اختار إدارتك.' })
 
   for (const key of a.best_departments ?? []) {
     const score = depts[key]?.score

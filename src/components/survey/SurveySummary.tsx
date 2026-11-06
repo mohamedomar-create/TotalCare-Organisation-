@@ -16,18 +16,15 @@ function Section({ title, step, onEdit, children }: { title: string; step: numbe
 const none = <span className="muted">Not answered · لم تتم الإجابة</span>
 const clean = (xs?: string[]) => (xs ?? []).map((x) => x?.trim()).filter(Boolean) as string[]
 
-export default function SurveySummary({ answers, level, onEdit }: { answers: SurveyAnswers; level?: string; onEdit?: (step: number) => void }) {
+export default function SurveySummary({ answers, onEdit }: { answers: SurveyAnswers; onEdit?: (step: number) => void }) {
   const my = deptByKey(answers.my_dept ?? '') ?? MY_DEPARTMENT_EXTRA.find((x) => x.key === answers.my_dept)
   const managers = (answers.best_managers ?? []).filter((n) => n.name?.trim())
   const employees = (answers.best_employees ?? []).filter((n) => n.name?.trim())
   return (
     <div className="summary">
-      <Section title="About you · عنك" step={0} onEdit={onEdit}>
+      <Section title="Your department · إدارتك" step={0} onEdit={onEdit}>
         <p>
-          <strong>Department:</strong> {my ? `${my.name} · ${my.ar}` : 'Prefer not to say'}
-          {level && <> · <strong>Level:</strong> {level}</>}
-          {answers.tenure && <> · <strong>At TotalCare:</strong> {answers.tenure}</>}
-          {answers.location && <> · <strong>Based in:</strong> {answers.location}</>}
+          {my ? `${my.name} · ${my.ar}` : <span className="muted">Not chosen yet</span>}
         </p>
       </Section>
 

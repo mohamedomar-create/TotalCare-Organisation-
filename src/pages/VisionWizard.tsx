@@ -7,20 +7,15 @@ import { useDirectory } from '../lib/useDirectory'
 import { useStaff } from '../lib/community'
 import type { Submission } from '../lib/types'
 import {
-  ARABIC,
-  LOCATION_OPTIONS,
   MY_DEPARTMENT_EXTRA,
   PROBLEM_SUGGESTIONS,
-  ROLE_LEVELS,
   STRENGTH_SUGGESTIONS,
   SURVEY_DEPARTMENTS,
-  TENURE_OPTIONS,
   WIZARD_STEPS,
   type DeptReview,
   type SurveyAnswers,
 } from '../lib/survey'
 import { assessQuality, newRewardCode, qualityRecord } from '../lib/quality'
-import Chips from '../components/Chips'
 import PrivacyNotice from '../components/PrivacyNotice'
 import SubmissionSummary from '../components/SubmissionSummary'
 import SurveySummary from '../components/survey/SurveySummary'
@@ -310,26 +305,16 @@ export default function VisionWizard() {
 
         {step === 0 && (
           <>
-            <h1>Let’s start with you <span className="ar-title" lang="ar">نبدأ بيك</span></h1>
+            <h1>Which department are you in? <span className="ar-title" lang="ar">إنت في أنهي إدارة؟</span></h1>
             <PrivacyNotice />
-            <p className="field-label">Your department <span className="ar-inline" lang="ar">إدارتك</span></p>
-            <div className="chips">
+            <p className="lead">That’s the only thing we ask about you. It lets us leave out a team’s rating of itself. · ده السؤال الوحيد عنك.</p>
+            <div className="chips big-chips">
               {myDeptChoices.map((d) => (
                 <button key={d.key} type="button" className={`chip ${answers.my_dept === d.key ? 'on' : ''}`} onClick={() => chooseMyDept(d.key)}>
                   <span className="chip-text">{d.name}<span className="chip-ar" lang="ar">{d.ar}</span></span>
                 </button>
               ))}
-              <button type="button" className={`chip ${answers.v === 2 && !answers.my_dept ? 'on' : ''}`} onClick={() => change({ answers: { ...answers, my_dept: undefined, v: 2 }, department_id: null })}>
-                <span className="chip-text">Prefer not to say<span className="chip-ar" lang="ar">أفضّل ألا أقول</span></span>
-              </button>
             </div>
-            <p className="field-label">Your level <span className="ar-inline" lang="ar">مستواك الوظيفي</span></p>
-            <Chips options={ROLE_LEVELS} selected={sub.role_level ? [sub.role_level] : []} onChange={(v) => change({ role_level: v[v.length - 1] ?? '' })} translate={ARABIC} />
-            <p className="field-label">How long have you been at TotalCare? <span className="ar-inline" lang="ar">بقالك قد إيه في TotalCare؟</span></p>
-            <Chips options={TENURE_OPTIONS} selected={answers.tenure ? [answers.tenure] : []} onChange={(v) => setAnswers({ tenure: v[v.length - 1] })} translate={ARABIC} />
-            <p className="field-label">Where do you work most of the time? <span className="ar-inline" lang="ar">بتشتغل فين أغلب الوقت؟</span></p>
-            <Chips options={LOCATION_OPTIONS} selected={answers.location ? [answers.location] : []} onChange={(v) => setAnswers({ location: v[v.length - 1] })} translate={ARABIC} />
-            <p className="muted small">All optional. In a small team, “Prefer not to say” makes you harder to identify.</p>
           </>
         )}
 
@@ -405,11 +390,11 @@ export default function VisionWizard() {
                 </button>
                 <button type="button" className={`card choice ${anonymous === true ? 'on' : ''}`} onClick={() => setAnonymous(true)}>
                   <EyeOff size={22} />
-                  <span><b>Anonymously</b> · من غير اسم<br /><span className="muted small">Stored with no name and only today’s date: nobody, including the admin, can link the answers to you. Your level, years at TotalCare and location are removed too, so you can’t be recognised in a small team — only your department is kept. You get a private code to claim the reward if your idea wins.</span></span>
+                  <span><b>Anonymously</b> · من غير اسم<br /><span className="muted small">Stored with no name and only today’s date: nobody, including the admin, can link the answers to you. Only your department is kept with them. You get a private code to claim the reward if your idea wins.</span></span>
                 </button>
               </div>
             )}
-            <SurveySummary answers={answers} level={sub.role_level} onEdit={locked ? undefined : go} />
+            <SurveySummary answers={answers} onEdit={locked ? undefined : go} />
           </>
         )}
       </div>
@@ -419,7 +404,7 @@ export default function VisionWizard() {
           <button type="button" className="secondary" onClick={() => go(step - 1)} disabled={step === 0}><ArrowLeft size={16} /> Back</button>
           <button type="button" className="link danger" onClick={remove}><Trash2 size={14} /> Delete draft</button>
           {step < LAST ? (
-            <button type="button" onClick={() => go(step + 1)}>Next <ArrowRight size={16} /></button>
+            <button type="button" onClick={() => go(step + 1)} disabled={step === 0 && !answers.my_dept} title={step === 0 && !answers.my_dept ? 'Choose your department first' : ''}>Next <ArrowRight size={16} /></button>
           ) : (
             <button type="button" className="primary-lg" onClick={submit} disabled={anonymous === null || hardOpen.length > 0}><Send size={16} /> {anonymous ? 'Send anonymously · ابعت من غير اسم' : 'Send · ابعت'}</button>
           )}

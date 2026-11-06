@@ -228,7 +228,7 @@ export const STRENGTH_SUGGESTIONS = STRENGTHS
 Object.assign(ARABIC, toMap(STRENGTHS))
 
 export const WIZARD_STEPS = [
-  { key: 'about', title: 'About you', ar: 'عنك', hint: '30 seconds' },
+  { key: 'about', title: 'Department', ar: 'إدارتك', hint: '5 seconds' },
   { key: 'departments', title: 'Departments', ar: 'الإدارات', hint: '8 departments' },
   { key: 'best', title: 'The best', ar: 'الأحسن', hint: 'Top 3' },
   { key: 'company', title: 'The company', ar: 'الشركة', hint: 'Problems & strengths' },

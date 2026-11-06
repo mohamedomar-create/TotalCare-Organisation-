@@ -11,6 +11,7 @@ describe('answer checks', () => {
   it('a careful answer has no issues', () => {
     const a: SurveyAnswers = {
       v: 2,
+      my_dept: 'sales',
       started_at: ago(12),
       depts: { marketing: { score: 8, strengths: 'Good events', weaknesses: 'Late materials' }, sales: { score: 6 }, maintenance: { score: 9, strengths: 'Fast' } },
       best_departments: ['maintenance', 'marketing'],
@@ -21,8 +22,13 @@ describe('answer checks', () => {
     expect(q.score).toBe(100)
   })
 
+  it('requires the department', () => {
+    expect(findIssues({}).map((i) => [i.key, i.severity])).toEqual([['no_dept', 'hard']])
+  })
+
   it('asks when a "best" department was rated low, and when text and score disagree', () => {
     const a: SurveyAnswers = {
+      my_dept: 'marketing',
       depts: { accounting: { score: 3, strengths: 'Friendly' }, sales: { score: 10, weaknesses: 'Slow quotes' } },
       best_departments: ['accounting'],
     }
@@ -30,17 +36,17 @@ describe('answer checks', () => {
   })
 
   it('blocks self-nomination and duplicates, whatever the spelling', () => {
-    const a: SurveyAnswers = { best_employees: [{ name: 'م. أحمد حسن' }, { name: 'Mona' }, { name: 'mona ' }] }
+    const a: SurveyAnswers = { my_dept: 'sales', best_employees: [{ name: 'م. أحمد حسن' }, { name: 'Mona' }, { name: 'mona ' }] }
     const issues = findIssues(a, 'احمد  حسن')
     expect(issues.filter((i) => i.severity === 'hard').map((i) => i.key)).toEqual(['self_best employee', 'dup_best employee'])
   })
 
   it('flags the same score everywhere and rushing; confirming lowers the penalty', () => {
     const same = Object.fromEntries(['marketing', 'installations', 'collections', 'accounting', 'sales', 'maintenance'].map((k) => [k, { score: 7 }]))
-    const q = assessQuality({ depts: same, started_at: ago(1) }, '', now)
+    const q = assessQuality({ my_dept: 'sales', depts: same, started_at: ago(1) }, '', now)
     expect(q.straightLined && q.rushed).toBe(true)
     expect(q.level).toBe('low')
-    const a: SurveyAnswers = { depts: { hr_legal: { score: 2, strengths: 'Quick contracts' } }, started_at: ago(10) }
+    const a: SurveyAnswers = { my_dept: 'sales', depts: { hr_legal: { score: 2, strengths: 'Quick contracts' } }, started_at: ago(10) }
     expect(assessQuality(a, '', now).score).toBe(85)
     expect(assessQuality({ ...a, confirmed: ['low_no_weak_hr_legal'] }, '', now).score).toBe(95)
   })
@@ -141,7 +147,7 @@ describe('dashboard analytics', () => {
     expect(a.flagged[0].id).toBe('3')
     expect(a.ownDeptVotes).toBe(50)
     expect(a.selfBias).toEqual([]) // only one person rated their own team: never shown
-    expect(a.completeness.find((c) => c.label.startsWith('Said'))!.pct).toBe(100)
+    expect(a.completeness.find((c) => c.label.startsWith('Rated'))!.pct).toBe(100)
     expect(a.skips[0]).toMatchObject({ key: 'hr_legal', skips: 1 })
   })
 

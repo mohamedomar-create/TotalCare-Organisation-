@@ -6,7 +6,7 @@ The survey is the front door. The earlier community features (ideas board, kudos
 
 ## The survey (6 short steps, autosave, works offline)
 
-1. **About you**: department, level, time at TotalCare and where you work (all optional; "Prefer not to say" is always there).
+1. **Your department**: the only question about the person (required). It's used to leave out a team's rating of itself; nothing else about the person is asked.
 2. **Departments**: for each of the 8 departments — Marketing (التسويق), Installations (التركيبات), Collections (التحصيل), Accounting (الحسابات), Sales (المبيعات), Maintenance (الصيانة), Purchasing & Warehouses (المشتريات والمخازن), HR & Legal (الموارد البشرية والقانوني):
    1. your opinion from 1 to 10, 2. its biggest strengths, 3. its biggest weaknesses, 4. ideas to improve it.
    One department per screen with tabs; "I don't deal with them" skips a department. Your own department is marked and its score counted separately.
@@ -37,7 +37,7 @@ Each response gets an answer-quality score (0–100); the results page can leave
 
 ## Admin
 
-- **Results dashboard** (`/admin`), with filters by department, level, time at TotalCare, location and named/anonymous (any filter leaving fewer than 3 answers is hidden), print/PDF and CSV export:
+- **Results dashboard** (`/admin`), with filters by department and named/anonymous (any filter leaving fewer than 3 answers is hidden), print/PDF and CSV export:
   - **Overview**: company score out of 10 (and 0–100 index), participation, anonymous share, answer quality, highlights (best/lowest-rated department, most praised, biggest complaint, top company strength and problem, most-nominated manager and employee), department ranking, and praise vs. complaints by theme.
   - **Departments**: a card per department (score, distribution, score index, self-rating, all comments, one-click improvement plan) and a "who rates whom" heat map.
   - **Best & worst**: praise and complaints sorted automatically into themes in English and Arabic (speed & delays, communication, approvals, payments, stock & parts, Odoo, staffing, training, attitude, quality, customers, planning) with example quotes, complaints by department, company problems and strengths, best- and lowest-rated departments.

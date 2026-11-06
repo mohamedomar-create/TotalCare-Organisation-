@@ -11,7 +11,7 @@ import {
   reasonsFor, themeCounts, type DeptResult, type Ranked, type Segment, type ThemeRow,
 } from '../lib/results'
 import { PLAYBOOK } from '../lib/initiatives'
-import { LOCATION_OPTIONS, MY_DEPARTMENT_EXTRA, ROLE_LEVELS, SURVEY_DEPARTMENTS, TENURE_OPTIONS, deptByKey, type SurveyAnswers } from '../lib/survey'
+import { MY_DEPARTMENT_EXTRA, SURVEY_DEPARTMENTS, deptByKey, type SurveyAnswers } from '../lib/survey'
 import { CountUp } from '../components/ui'
 import type { Submission } from '../lib/types'
 
@@ -22,14 +22,14 @@ function downloadResults(subs: Submission[]) {
     const s = v === null || v === undefined ? '' : String(v)
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
-  const header = ['Response', 'Anonymous', 'My department', 'Level', 'Time at TotalCare', 'Based in', 'Answer quality',
+  const header = ['Response', 'Anonymous', 'My department', 'Answer quality',
     ...SURVEY_DEPARTMENTS.flatMap((d) => [`${d.name} score`, `${d.name} strengths`, `${d.name} weaknesses`, `${d.name} ideas`]),
     'Best manager 1', 'Best manager 2', 'Best manager 3', 'Best department 1', 'Best department 2', 'Best department 3', 'Best employee 1', 'Best employee 2', 'Best employee 3',
     'Problem 1', 'Problem 2', 'Problem 3', 'Strength 1', 'Strength 2', 'Strength 3', 'Idea 1', 'Idea 2', 'Idea 3', 'Idea 4', 'Idea 5', 'Reward code']
   const rows = subs.map((s, i) => {
     const a = (s.answers ?? {}) as SurveyAnswers
     const n = (xs: { name: string }[] | undefined, k: number) => xs?.[k]?.name ?? ''
-    return [i + 1, s.anonymous ? 'yes' : 'no', deptByKey(a.my_dept ?? '')?.name ?? a.my_dept ?? '', s.role_level, a.tenure, a.location, s.quality?.score ?? '',
+    return [i + 1, s.anonymous ? 'yes' : 'no', deptByKey(a.my_dept ?? '')?.name ?? a.my_dept ?? '', s.quality?.score ?? '',
       ...SURVEY_DEPARTMENTS.flatMap((d) => { const r = a.depts?.[d.key]; return r?.skip ? ['skipped', '', '', ''] : [r?.score ?? '', r?.strengths ?? '', r?.weaknesses ?? '', r?.ideas ?? ''] }),
       n(a.best_managers, 0), n(a.best_managers, 1), n(a.best_managers, 2),
       ...[0, 1, 2].map((k) => deptByKey(a.best_departments?.[k] ?? '')?.name ?? ''),
@@ -212,18 +212,6 @@ export default function AdminResults() {
         <select value={seg.dept ?? ''} onChange={(e) => set({ dept: e.target.value || undefined })}>
           <option value="">All departments</option>
           {[...SURVEY_DEPARTMENTS, ...MY_DEPARTMENT_EXTRA].map((d) => <option key={d.key} value={d.key}>{d.name}</option>)}
-        </select>
-        <select value={seg.level ?? ''} onChange={(e) => set({ level: e.target.value || undefined })}>
-          <option value="">All levels</option>
-          {ROLE_LEVELS.map((l) => <option key={l}>{l}</option>)}
-        </select>
-        <select value={seg.tenure ?? ''} onChange={(e) => set({ tenure: e.target.value || undefined })}>
-          <option value="">Any time at TotalCare</option>
-          {TENURE_OPTIONS.map((l) => <option key={l}>{l}</option>)}
-        </select>
-        <select value={seg.location ?? ''} onChange={(e) => set({ location: e.target.value || undefined })}>
-          <option value="">All locations</option>
-          {LOCATION_OPTIONS.map((l) => <option key={l}>{l}</option>)}
         </select>
         <select value={seg.mode ?? ''} onChange={(e) => set({ mode: (e.target.value || undefined) as Segment['mode'] })}>
           <option value="">Named + anonymous</option>
