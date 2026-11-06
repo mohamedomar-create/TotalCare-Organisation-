@@ -1122,3 +1122,8 @@ a.kpi:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
   .update-box { grid-template-columns: 1fr 70px 36px 36px; }
   .matrix { height: 380px; }
 }
+
+/* invitations */
+.join-link { display: block; text-align: center; margin: 4px 0 8px; }
+.stack-cards { display: grid; gap: 16px; align-content: start; }
+.invite-table td { vertical-align: top; }

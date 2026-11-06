@@ -11,8 +11,8 @@ export default function Login() {
     e.preventDefault()
     setError(null)
     const clean = email.trim().toLowerCase()
-    if (!clean.endsWith(`@${ALLOWED_DOMAIN}`)) {
-      setError(`Please use your @${ALLOWED_DOMAIN} work e-mail.`)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+      setError('Please enter a valid e-mail.')
       return
     }
     setStatus('sending')
@@ -21,7 +21,8 @@ export default function Login() {
       options: { emailRedirectTo: window.location.origin, data: { full_name: fullName.trim() } },
     })
     if (error) {
-      setError(error.message)
+      // The database only accepts company e-mails and invited addresses.
+      setError(/invited|database error/i.test(error.message) ? `This e-mail hasn’t been invited. Use your @${ALLOWED_DOMAIN} e-mail, or ask HR for an invitation. · الإيميل ده مش متسجل، اطلب دعوة.` : error.message)
       setStatus('idle')
     } else {
       setStatus('sent')
@@ -32,16 +33,18 @@ export default function Login() {
     <div className="login">
       <div className="login-art">
         <div className="logo big">TC</div>
-        <h2>Help shape how TotalCare works</h2>
+        <h2>Your voice shapes TotalCare</h2>
+        <p lang="ar" dir="rtl" className="hero-ar">صوتك بيشكّل TotalCare</p>
         <ul>
-          <li>✔ Quick, tap-to-answer questions</li>
-          <li>✔ Draw the structure you’d like to see</li>
-          <li>✔ Confidential — sent to the admin only</li>
+          <li>✔ Rate each department, name the best, share ideas</li>
+          <li>✔ About 8 minutes, Arabic or English</li>
+          <li>✔ You can answer anonymously</li>
         </ul>
       </div>
       <form className="card login-card" onSubmit={submit}>
         <h1>Sign in</h1>
-        <p className="muted">Use your work e-mail. We’ll send you a one-time sign-in link — no password needed.</p>
+        <p className="muted">Use your work e-mail, or the e-mail HR invited. We’ll send you a one-time sign-in link — no password needed.</p>
+        <a className="button secondary join-link" href="/join">🔑 I have an invitation code or link (no e-mail) · عندي كود دعوة</a>
         {status === 'sent' ? (
           <p className="notice">Check your inbox for the sign-in link sent to {email}.</p>
         ) : (
@@ -51,7 +54,7 @@ export default function Login() {
               <input value={fullName} onChange={(e) => setFullName(e.target.value)} />
             </label>
             <label>
-              Work e-mail
+              E-mail
               <input
                 type="email"
                 required

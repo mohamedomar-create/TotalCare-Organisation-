@@ -7,6 +7,9 @@ export interface Profile {
   role: Role
   department_id?: string | null
   created_at?: string
+  /** false until someone who signed in without a company e-mail redeems an invitation */
+  active?: boolean
+  phone?: string
 }
 
 export interface Department {

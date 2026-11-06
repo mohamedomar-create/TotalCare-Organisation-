@@ -31,7 +31,7 @@ export default function AdminCoverage() {
     return { ...d, answered, headcount, pct: headcount ? Math.min(100, Math.round((answered / headcount) * 100)) : null }
   })
   const notGiven = sent.filter((s) => !(s.answers as SurveyAnswers)?.my_dept).length
-  const missing = profiles.filter((p) => !participants.has(p.id))
+  const missing = profiles.filter((p) => p.active !== false && !participants.has(p.id))
 
   function copy(text: string, what: string) {
     void navigator.clipboard?.writeText(text)
@@ -74,13 +74,13 @@ export default function AdminCoverage() {
             <a className="button" href={`https://wa.me/?text=${encodeURIComponent(message)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} /> Share on WhatsApp</a>
             <button type="button" className="secondary" onClick={() => copy(message, 'invite')}><Copy size={15} /> {copied === 'invite' ? 'Copied' : 'Copy message'}</button>
           </div>
-          <p className="muted small">Colleagues without a company e-mail can’t sign in yet: ask a supervisor to help them, or use Speak up for their comments.</p>
+          <p className="muted small">Colleagues without a company e-mail need a personal link: create one on <a href="/admin/invitations">Invitations</a> and send it on WhatsApp.</p>
         </section>
       </div>
 
       <section className="card">
         <div className="row between">
-          <h2>Not answered yet ({missing.length} of {profiles.length})</h2>
+          <h2>Not answered yet ({missing.length} of {profiles.filter((p) => p.active !== false).length})</h2>
           {missing.length > 0 && <button type="button" className="secondary small-btn" onClick={() => copy(missing.map((p) => p.full_name || p.email).join('\n'), 'names')}><Copy size={14} /> {copied === 'names' ? 'Copied' : 'Copy names'}</button>}
         </div>
         <p className="muted small">Only who has taken part is known — never what they answered, and never which answers were anonymous. Use this for friendly reminders, not pressure.</p>

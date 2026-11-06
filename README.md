@@ -43,6 +43,19 @@ Each response gets an answer-quality score (0–100); the results page can leave
 - **Speak-up inbox**: read and reply to anonymous messages, with status.
 - **Survey settings & earlier pulse** (`/admin/pulse`): the earlier dashboard, the one-survey-per-person limit, "open a new round" and reset.
 
+## Who can take part: invitations
+
+Everyone can take part, with or without a company e-mail:
+
+- **Company e-mail** (`@totalcareegypt.com`): sign in with the e-mail link, no invitation needed.
+- **Any other e-mail** (Gmail, Yahoo…): the admin invites that address on **Admin → Invitations**; the person then signs in with the e-mail link as usual. Uninvited addresses are refused by the database.
+- **No e-mail at all** (drivers, technicians, warehouse): the admin creates a personal invitation with the person's name, mobile and department and sends it with the **WhatsApp** button. The person opens the link on their phone, checks their name and taps **Join** — no e-mail or password. The phone stays signed in.
+- **Team link**: one link for a WhatsApp group, limited to a number of people and days. Each person types their own name. Team links only create staff members.
+- Personal links work once. Invitations expire after 30 days (extendable). A cancelled or used link stops working. If someone changes phone, cancel the old invitation and send a new one.
+- Until a person has joined through an invitation they can't start the survey, use Speak up, send feedback or support initiatives — enforced by the database (`profiles.active`).
+
+**One-time Supabase setting for invitation links:** Authentication → Sign In / Providers → turn on **Allow anonymous sign-ins** (recommended: also turn on CAPTCHA protection under Authentication → Attack Protection). E-mail invitations and company e-mails work without this setting.
+
 ## Who sees what (confidential model)
 
 | Role | Can see |
@@ -56,7 +69,7 @@ Staff are told this in the survey. The rules are enforced by Postgres row-level 
 ## Setup
 
 1. Create a Supabase project at https://supabase.com.
-2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives). Optionally run `supabase/seed.sql` for example data.
+2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives; `0007_invitations.sql` adds invitations). Optionally run `supabase/seed.sql` for example data.
 3. Under **Authentication → URL configuration**, set the Site URL to where the app will be hosted (for local development, `http://localhost:5173`).
 4. Copy `.env.example` to `.env` and fill in the project URL and anon key from **Project Settings → API**.
 5. Install and run:
@@ -70,7 +83,7 @@ Staff are told this in the survey. The rules are enforced by Postgres row-level 
    ```
    After that, assign `management` and other roles from the **Users** page.
 
-Only `@totalcareegypt.com` addresses can sign up. The database enforces this in `handle_new_user`. To change the domain, edit it there and in `VITE_ALLOWED_DOMAIN`.
+`@totalcareegypt.com` addresses can sign up directly; everyone else needs an invitation (see above). The database enforces this in `handle_new_user` (`0007_invitations.sql`). To change the company domain, edit it there and in `VITE_ALLOWED_DOMAIN`.
 
 The questions and pick-lists live in `src/lib/survey.ts`. The org-chart departments, levels and ready-made roles live in `src/lib/orgBoard.ts`. Edit those files to change them.
 

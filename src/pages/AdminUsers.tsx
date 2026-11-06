@@ -55,15 +55,15 @@ export default function AdminUsers() {
   return (
     <div className="page">
       <h1>Users & roles</h1>
-      <p className="muted">People appear here after their first sign-in. Everyone can send {perPerson} survey{perPerson === 1 ? '' : 's'} (change this on the dashboard). Use <strong>+1</strong> to let one person send another.</p>
+      <p className="muted">People appear here after their first sign-in. Invite people without a company e-mail on the <a href="/admin/invitations">Invitations</a> page. Everyone can send {perPerson} survey{perPerson === 1 ? '' : 's'} (change this on the dashboard). Use <strong>+1</strong> to let one person send another.</p>
       {error && <p className="error">{error}</p>}
       <table>
         <thead><tr><th>Name</th><th>E-mail</th><th>Role</th><th>Surveys</th></tr></thead>
         <tbody>
           {users.map((u) => (
             <tr key={u.id}>
-              <td>{u.full_name || '—'}</td>
-              <td>{u.email}</td>
+              <td>{u.full_name || '—'}{u.active === false && <span className="pill tone-amber">not joined yet</span>}</td>
+              <td>{u.email.endsWith('@invite.local') ? <span className="muted">{u.phone || 'joined by invitation link'}</span> : u.email}</td>
               <td>
                 <select value={u.role} disabled={u.id === me?.id} onChange={(e) => void setRole(u, e.target.value as Role)}>
                   {(Object.keys(ROLE_HELP) as Role[]).map((r) => (

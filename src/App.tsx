@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import {
+  Send,
   ClipboardList,
   Megaphone,
   Rocket,
@@ -60,6 +61,8 @@ import Initiatives from './pages/Initiatives'
 import AdminCoverage from './pages/AdminCoverage'
 import AdminSafeVoice from './pages/AdminSafeVoice'
 import AdminResults from './pages/AdminResults'
+import Join from './pages/Join'
+import AdminInvitations from './pages/AdminInvitations'
 
 function RequireRole({ roles, children }: { roles: Role[]; children: React.ReactNode }) {
   const { profile } = useAuth()
@@ -93,7 +96,11 @@ export default function App() {
     )
   }
   if (loading) return <div className="centered muted">Loading…</div>
+  // Invitation links work before signing in; people who signed in without a company e-mail
+  // must redeem an invitation before they can use anything.
+  if (location.pathname.startsWith('/join')) return <Join />
   if (!session) return <Login />
+  if (profile && profile.active === false) return <Join />
 
   const name = profile?.full_name || session.user.email || ''
   // The submission wizard runs full-screen, like a Typeform, to keep people focused.
@@ -151,7 +158,8 @@ export default function App() {
               <p className="nav-section">Admin</p>
               <NavLink to="/admin" end><BarChart3 size={18} /> Results</NavLink>
               <NavLink to="/admin/inbox"><Inbox size={18} /> Responses <Badge n={counts.submissions + counts.feedback} /></NavLink>
-              <NavLink to="/admin/coverage"><Megaphone size={18} /> Coverage & invites</NavLink>
+              <NavLink to="/admin/coverage"><Megaphone size={18} /> Coverage</NavLink>
+              <NavLink to="/admin/invitations"><Send size={18} /> Invitations</NavLink>
               <NavLink to="/admin/safe-voice"><ShieldCheck size={18} /> Speak-up inbox</NavLink>
               {FEATURES.community && <NavLink to="/admin/community"><Sparkles size={18} /> Community</NavLink>}
               <NavLink to="/admin/directory"><Settings2 size={18} /> Departments & people</NavLink>
@@ -183,6 +191,7 @@ export default function App() {
           <Route path="/speak-up" element={<SpeakUp />} />
           <Route path="/initiatives" element={<Initiatives />} />
           <Route path="/admin/coverage" element={<RequireRole roles={['admin']}><AdminCoverage /></RequireRole>} />
+          <Route path="/admin/invitations" element={<RequireRole roles={['admin']}><AdminInvitations /></RequireRole>} />
           <Route path="/admin/safe-voice" element={<RequireRole roles={['admin']}><AdminSafeVoice /></RequireRole>} />
           {FEATURES.orgChart && <Route path="/org" element={<OrgChart />} />}
           {FEATURES.orgChart && <Route path="/directory" element={<Directory />} />}
