@@ -9,10 +9,13 @@ The survey is the front door. The earlier community features (ideas board, kudos
 1. **Your department**: the only question about the person (required). It's used to leave out a team's rating of itself; nothing else about the person is asked.
 2. **Departments**: for each of the 8 departments — Marketing (التسويق), Installations (التركيبات), Collections (التحصيل), Accounting (الحسابات), Sales (المبيعات), Maintenance (الصيانة), Purchasing & Warehouses (المشتريات والمخازن), HR & Legal (الموارد البشرية والقانوني):
    1. your opinion from 1 to 10, 2. its biggest strengths, 3. its biggest weaknesses, 4. ideas to improve it.
-   One department per screen with tabs; "I don't deal with them" skips a department. Your own department is marked and its score counted separately.
-3. **The best**: best manager, best department and best employee — top 3 each, with an optional reason. Names are suggested from the staff list.
-4. **The company**: biggest problems (3) and best strengths (3), with tap-to-fill suggestions so similar answers are counted together.
-5. **Ideas**: up to 5 ideas to develop the company. *The best idea is rewarded and implemented where possible.*
+   One department per screen with tabs; all four questions are required for all 8 departments. Your own department is marked and its score counted separately.
+3. **The best**: best manager, best department and best employee — all 3 required for each, with an optional reason. Names are suggested from the staff list.
+4. **The company**: biggest problems (3) and best strengths (3), all required, with tap-to-fill suggestions so similar answers are counted together.
+5. **Ideas**: 5 ideas to develop the company (all required). *The best idea is rewarded and implemented where possible.*
+
+**Every question is required.** Next stays on the step and lists what is missing (with a button to jump to each department), the steps ahead unlock once the earlier ones are complete, and Send is blocked until everything is answered. An answer needs at least two characters.
+
 6. **Check & send**: a summary to review, the answer checks, and the choice to send **with my name** or **anonymously**.
 
 **Answer checks (consistent answers).** Before sending, the survey asks once when answers don't fit together, and the person fixes them or confirms them:

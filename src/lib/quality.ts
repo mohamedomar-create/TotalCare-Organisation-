@@ -1,6 +1,6 @@
 // Answer consistency: finds answers that don't fit together, so the person can fix them before
 // sending, and gives every response a quality score the results page can filter on.
-import { deptByKey, type SurveyAnswers } from './survey'
+import { SURVEY_DEPARTMENTS, deptByKey, type DeptReview, type SurveyAnswers } from './survey'
 
 export interface Issue {
   key: string
@@ -98,6 +98,44 @@ export function assessQuality(a: SurveyAnswers, myName = '', now = new Date()): 
     rushed,
     minutes: minutes === null ? null : Math.round(minutes * 10) / 10,
   }
+}
+
+/** An answer counts once it has at least two characters (so "-" or "." doesn't). */
+export const answered = (s?: string) => (s ?? '').trim().length >= 2
+
+/** Which of the four questions about one department are still empty. */
+export function deptGaps(r?: DeptReview) {
+  const gaps: { en: string; ar: string }[] = []
+  if (typeof r?.score !== 'number') gaps.push({ en: 'score', ar: 'التقييم' })
+  if (!answered(r?.strengths)) gaps.push({ en: 'strengths', ar: 'المميزات' })
+  if (!answered(r?.weaknesses)) gaps.push({ en: 'weaknesses', ar: 'العيوب' })
+  if (!answered(r?.ideas)) gaps.push({ en: 'ideas', ar: 'الأفكار' })
+  return gaps
+}
+
+const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩'
+const arNum = (n: number) => String(n).replace(/\d/g, (d) => AR_DIGITS[Number(d)])
+
+/** Every question is required: one hard issue per incomplete question, pointing at its step. */
+export function missingAnswers(a: SurveyAnswers): Issue[] {
+  const out: Issue[] = []
+  if (!a.my_dept) out.push({ key: 'no_dept', severity: 'hard', step: 0, message: 'Choose your department.', ar: 'اختار إدارتك.' })
+  for (const d of SURVEY_DEPARTMENTS) {
+    const gaps = deptGaps(a.depts?.[d.key])
+    if (gaps.length) out.push({ key: `missing_dept_${d.key}`, severity: 'hard', step: 1, dept: d.key, message: `${d.name}: answer the ${gaps.map((g) => g.en).join(', ')}.`, ar: `${d.ar}: ناقص ${gaps.map((g) => g.ar).join('، ')}.` })
+  }
+  const need = (key: string, step: number, have: number, want: number, en: string, ar: string) => {
+    if (have < want) out.push({ key, severity: 'hard', step, message: `${en}: fill in all ${want} (you have ${have}).`, ar: `${ar}: لازم ${arNum(want)} (عندك ${arNum(have)}).` })
+  }
+  const names = (xs?: { name: string }[]) => (xs ?? []).slice(0, 3).filter((n) => answered(n?.name)).length
+  const texts = (xs: string[] | undefined, n: number) => (xs ?? []).slice(0, n).filter((t) => answered(t)).length
+  need('missing_best_managers', 2, names(a.best_managers), 3, 'Best manager', 'أحسن مدير')
+  need('missing_best_departments', 2, (a.best_departments ?? []).length, 3, 'Best department', 'أحسن إدارة')
+  need('missing_best_employees', 2, names(a.best_employees), 3, 'Best employee', 'أحسن موظف')
+  need('missing_company_problems', 3, texts(a.company_problems, 3), 3, 'Biggest company problems', 'أكبر مشاكل الشركة')
+  need('missing_company_strengths', 3, texts(a.company_strengths, 3), 3, 'Best company strengths', 'أحسن مميزات الشركة')
+  need('missing_company_ideas', 4, texts(a.company_ideas, 5), 5, 'Ideas to develop TotalCare', 'أفكار لتطوير الشركة')
+  return out
 }
 
 /** What to store in submissions.quality. */

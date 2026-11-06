@@ -15,7 +15,7 @@ import {
   type DeptReview,
   type SurveyAnswers,
 } from '../lib/survey'
-import { assessQuality, newRewardCode, qualityRecord } from '../lib/quality'
+import { assessQuality, missingAnswers, newRewardCode, qualityRecord, type Issue } from '../lib/quality'
 import PrivacyNotice from '../components/PrivacyNotice'
 import SubmissionSummary from '../components/SubmissionSummary'
 import SurveySummary from '../components/survey/SurveySummary'
@@ -63,6 +63,7 @@ export default function VisionWizard() {
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'dirty' | 'offline'>('saved')
   const [done, setDone] = useState<false | 'named' | 'anonymous'>(false)
   const [anonymous, setAnonymous] = useState<boolean | null>(null)
+  const [tried, setTried] = useState(-1) // the step where Next was pressed with answers missing
   const pending = useRef<Partial<Submission>>({})
   const timer = useRef<number | undefined>(undefined)
   const inFlight = useRef<Promise<boolean> | null>(null)
@@ -181,7 +182,7 @@ export default function VisionWizard() {
     if (anonymous === null) return setSaveError('Choose how to send your answers: with your name or anonymously.')
     const a = (sub.answers ?? {}) as SurveyAnswers
     const q = assessQuality(a, profile?.full_name ?? '')
-    if (q.open.some((i) => i.severity === 'hard')) return setSaveError('Please fix the points marked in red first.')
+    if (missingAnswers(a).length || q.open.some((i) => i.severity === 'hard')) return setSaveError('Please answer every question and fix the points marked in red first.')
     // An anonymous author keeps a code to claim the best-idea reward; nobody else can link it to them.
     const hasIdeas = [...(a.company_ideas ?? []), ...Object.values(a.depts ?? {}).map((r) => r.ideas ?? '')].some((t) => t?.trim())
     if (anonymous && hasIdeas && !a.reward_code) change({ answers: { ...a, reward_code: newRewardCode() } })
@@ -259,7 +260,26 @@ export default function VisionWizard() {
   const setAnswers = (patch: Partial<SurveyAnswers>) => change({ answers: { ...answers, ...patch, v: 2 } })
   const setDept = (key: string, r: DeptReview) => setAnswers({ depts: { ...(answers.depts ?? {}), [key]: r } })
   const quality = assessQuality(answers, profile?.full_name ?? '')
-  const hardOpen = quality.open.filter((i) => i.severity === 'hard')
+  // Every question is required: missing answers come first, then the consistency checks.
+  const missing = missingAnswers(answers)
+  const hardOpen = [...missing, ...quality.open.filter((i) => i.severity === 'hard' && !missing.some((m) => m.key === i.key))]
+  const firstGap = missing.length ? Math.min(...missing.map((i) => i.step)) : LAST
+  const stepMissing = missing.filter((i) => i.step === step)
+  const fix = (i: Issue) => {
+    if (i.dept) setDeptIndex(Math.max(0, SURVEY_DEPARTMENTS.findIndex((d) => d.key === i.dept)))
+    go(i.step)
+  }
+  function next() {
+    if (stepMissing.length) {
+      setTried(step)
+      window.setTimeout(() => document.querySelector('.missing-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50)
+      const first = stepMissing[0]
+      if (first.dept) setDeptIndex(Math.max(0, SURVEY_DEPARTMENTS.findIndex((d) => d.key === first.dept)))
+      return
+    }
+    setTried(-1)
+    go(step + 1)
+  }
   const softOpen = quality.open.filter((i) => i.severity === 'soft')
   const names = [...new Set([...staff.map((s) => s.full_name), ...people.map((p) => p.full_name)].filter(Boolean))].sort()
   const progress = Math.round((step / LAST) * 100)
@@ -291,7 +311,7 @@ export default function VisionWizard() {
         <ol className="stepper">
           {WIZARD_STEPS.map((s, i) => (
             <li key={s.key} className={i === step ? 'current' : i < step || locked ? 'done' : ''}>
-              <button type="button" onClick={() => go(i)} disabled={locked && i !== LAST}>
+              <button type="button" onClick={() => go(i)} disabled={locked ? i !== LAST : i > firstGap} title={!locked && i > firstGap ? 'Answer the earlier questions first · جاوب الأسئلة اللي قبلها الأول' : undefined}>
                 <span className="step-num">{i < step || locked ? <Check size={13} /> : i + 1}</span>
                 <span className="step-title">{s.title}</span>
               </button>
@@ -321,7 +341,7 @@ export default function VisionWizard() {
         {step === 1 && (
           <>
             <h1>Rate each department <span className="ar-title" lang="ar">قيّم كل إدارة</span></h1>
-            <p className="lead">For each department: your score from 1 to 10, its biggest strengths, its biggest weaknesses and your ideas. Skip any department you don’t deal with.</p>
+            <p className="lead">For each of the 8 departments: your score from 1 to 10, its biggest strengths, its biggest weaknesses and one idea to improve it. All questions are required. · كل الأسئلة إجبارية.</p>
             <DeptReviewer depts={answers.depts ?? {}} myDept={answers.my_dept} index={deptIndex} onIndex={setDeptIndex} onChange={setDept} />
           </>
         )}
@@ -329,7 +349,7 @@ export default function VisionWizard() {
         {step === 2 && (
           <>
             <h1>The best at TotalCare <span className="ar-title" lang="ar">الأحسن في TotalCare</span></h1>
-            <p className="lead">Your top 3 in each. Start typing to pick a name. You can’t choose yourself.</p>
+            <p className="lead">Your top 3 in each — all three are required. Start typing to pick a name. You can’t choose yourself.</p>
             <TopThreeNames title="Best manager" ar="أحسن مدير" value={answers.best_managers ?? []} names={names} onChange={(v) => setAnswers({ best_managers: v })} />
             <TopThreeDepartments value={answers.best_departments ?? []} onChange={(v) => setAnswers({ best_departments: v })} />
             <TopThreeNames title="Best employee" ar="أحسن موظف" icon={<Users size={18} />} value={answers.best_employees ?? []} names={names.filter((n) => n !== profile?.full_name)} onChange={(v) => setAnswers({ best_employees: v })} />
@@ -339,7 +359,7 @@ export default function VisionWizard() {
         {step === 3 && (
           <>
             <h1>The company <span className="ar-title" lang="ar">الشركة</span></h1>
-            <p className="lead">Short answers are best. Tap a suggestion if it says what you mean — it helps us count similar answers together.</p>
+            <p className="lead">Three of each, all required. Short answers are best. Tap a suggestion if it says what you mean — it helps us count similar answers together.</p>
             <NumberedList title="Biggest company problems" ar="أكبر مشاكل الشركة" count={3} value={answers.company_problems ?? []} onChange={(v) => setAnswers({ company_problems: v })} suggestions={PROBLEM_SUGGESTIONS} placeholder="e.g. Approvals take too long" />
             <NumberedList title="Best company strengths" ar="أحسن مميزات الشركة" count={3} value={answers.company_strengths ?? []} onChange={(v) => setAnswers({ company_strengths: v })} suggestions={STRENGTH_SUGGESTIONS} placeholder="e.g. Hospitals trust us" />
           </>
@@ -349,6 +369,7 @@ export default function VisionWizard() {
           <>
             <h1>Ideas to develop TotalCare <span className="ar-title" lang="ar">أفكار ممكن تطوّر الشركة</span></h1>
             <RewardBanner />
+            <p className="lead">Write 5 ideas — all five are required. · اكتب ٥ أفكار.</p>
             <NumberedList title="Your ideas" ar="أفكارك" count={5} value={answers.company_ideas ?? []} onChange={(v) => setAnswers({ company_ideas: v })} placeholder="e.g. One approval matrix: max 2 signatures for any order" />
           </>
         )}
@@ -362,7 +383,7 @@ export default function VisionWizard() {
                 {hardOpen.map((i) => (
                   <div key={i.key} className="check-row">
                     <span className="grow">{i.message}<br /><span className="muted small" lang="ar">{i.ar}</span></span>
-                    <button type="button" className="secondary small-btn" onClick={() => go(i.step)}>Fix</button>
+                    <button type="button" className="secondary small-btn" onClick={() => fix(i)}>Fix</button>
                   </div>
                 ))}
               </div>
@@ -399,12 +420,24 @@ export default function VisionWizard() {
         )}
       </div>
 
+      {!locked && step < LAST && tried === step && stepMissing.length > 0 && (
+        <div className="card check-card hard missing-card" role="alert">
+          <h3><AlertTriangle size={18} /> Please answer every question · من فضلك جاوب كل الأسئلة</h3>
+          {stepMissing.map((i) => (
+            <div key={i.key} className="check-row">
+              <span className="grow">{i.message}<br /><span className="muted small" lang="ar">{i.ar}</span></span>
+              {i.dept && <button type="button" className="secondary small-btn" onClick={() => fix(i)}>Go</button>}
+            </div>
+          ))}
+        </div>
+      )}
+
       {!locked && (
         <div className="wizard-foot">
           <button type="button" className="secondary" onClick={() => go(step - 1)} disabled={step === 0}><ArrowLeft size={16} /> Back</button>
           <button type="button" className="link danger" onClick={remove}><Trash2 size={14} /> Delete draft</button>
           {step < LAST ? (
-            <button type="button" onClick={() => go(step + 1)} disabled={step === 0 && !answers.my_dept} title={step === 0 && !answers.my_dept ? 'Choose your department first' : ''}>Next <ArrowRight size={16} /></button>
+            <button type="button" onClick={next}>Next <ArrowRight size={16} /></button>
           ) : (
             <button type="button" className="primary-lg" onClick={submit} disabled={anonymous === null || hardOpen.length > 0}><Send size={16} /> {anonymous ? 'Send anonymously · ابعت من غير اسم' : 'Send · ابعت'}</button>
           )}

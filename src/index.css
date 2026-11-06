@@ -1194,3 +1194,8 @@ a.kpi:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
   .demo-bar { height: 42px; flex-wrap: nowrap; }
   body.demo .sidebar { top: 42px; }
 }
+
+/* Required questions */
+.req { color: #dc2626; font-weight: 800; margin: 0 2px; }
+.dept-tab.partial { border-style: dashed; }
+.missing-card { margin-top: 12px; }

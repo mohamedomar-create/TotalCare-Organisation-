@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { assessQuality, findIssues, normalize } from './quality'
+import { assessQuality, findIssues, missingAnswers, normalize } from './quality'
+import { SURVEY_DEPARTMENTS } from './survey'
 import { allIdeas, companyResults, departmentResults, nominations } from './results'
 import type { SurveyAnswers } from './survey'
 import type { Submission } from './types'
@@ -54,6 +55,49 @@ describe('answer checks', () => {
   it('normalises Arabic spelling variants and titles', () => {
     expect(normalize('د. إسلام  مصطفى')).toBe(normalize('اسلام مصطفي'))
     expect(normalize('Eng. Hana')).toBe('hana')
+  })
+})
+
+describe('every question is required', () => {
+  const full = (): SurveyAnswers => ({
+    v: 2,
+    my_dept: 'sales',
+    depts: Object.fromEntries(SURVEY_DEPARTMENTS.map((d) => [d.key, { score: 7, strengths: 'Helpful', weaknesses: 'Slow', ideas: 'Weekly meeting' }])),
+    best_managers: [{ name: 'Ahmed' }, { name: 'Hala' }, { name: 'Tarek' }],
+    best_departments: ['maintenance', 'sales', 'marketing'],
+    best_employees: [{ name: 'Mona' }, { name: 'Karim' }, { name: 'Hana' }],
+    company_problems: ['Late payments', 'Too many signatures', 'Customs delays'],
+    company_strengths: ['Trusted by hospitals', 'Strong brands', 'Good engineers'],
+    company_ideas: ['Odoo for all orders', 'Two signatures max', 'Monthly star award', 'Route planning', 'Training day'],
+  })
+
+  it('a complete survey has nothing missing', () => {
+    expect(missingAnswers(full())).toEqual([])
+  })
+
+  it('names each gap and the step to go back to', () => {
+    const a = full()
+    a.depts!.accounting = { score: 4, strengths: 'Accurate', weaknesses: ' - ' }
+    delete a.depts!.hr_legal
+    a.best_departments = ['maintenance']
+    a.best_employees = [{ name: 'Mona' }, { name: '' }, { name: 'Hana' }]
+    a.company_ideas = ['One', 'Two', '', '', '']
+    const m = missingAnswers(a)
+    expect(m.map((i) => [i.key, i.step])).toEqual([
+      ['missing_dept_accounting', 1],
+      ['missing_dept_hr_legal', 1],
+      ['missing_best_departments', 2],
+      ['missing_best_employees', 2],
+      ['missing_company_ideas', 4],
+    ])
+    expect(m[0].message).toBe('Accounting: answer the weaknesses, ideas.')
+    expect(m.every((i) => i.severity === 'hard')).toBe(true)
+  })
+
+  it('an old "I don\'t deal with them" no longer counts as an answer', () => {
+    const a = full()
+    a.depts!.purchasing = { skip: true }
+    expect(missingAnswers(a).map((i) => i.key)).toEqual(['missing_dept_purchasing'])
   })
 })
 

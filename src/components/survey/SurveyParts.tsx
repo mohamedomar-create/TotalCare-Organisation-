@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
-import { ArrowLeft, ArrowRight, Ban, Check, Crown, Gift } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Crown, Gift } from 'lucide-react'
 import { ARABIC, SURVEY_DEPARTMENTS, type DeptReview, type Nomination } from '../../lib/survey'
+import { deptGaps } from '../../lib/quality'
 
 /** 1–10 score buttons, red to green. */
 export function ScoreScale({ value, onChange, disabled }: { value?: number; onChange: (v: number) => void; disabled?: boolean }) {
@@ -17,9 +18,11 @@ export function ScoreScale({ value, onChange, disabled }: { value?: number; onCh
 }
 
 export function deptState(r?: DeptReview) {
-  if (r?.skip) return 'skipped'
-  return typeof r?.score === 'number' ? 'done' : 'empty'
+  const gaps = deptGaps(r).length
+  return gaps === 0 ? 'done' : gaps < 4 ? 'partial' : 'empty'
 }
+
+const Req = () => <span className="req" aria-label="required">*</span>
 
 /** One department at a time: score, strengths, weaknesses, ideas. */
 export function DeptReviewer({ depts, myDept, index, onIndex, onChange }: {
@@ -31,8 +34,9 @@ export function DeptReviewer({ depts, myDept, index, onIndex, onChange }: {
 }) {
   const d = SURVEY_DEPARTMENTS[index]
   const r = depts[d.key] ?? {}
-  const set = (patch: Partial<DeptReview>) => onChange(d.key, { ...r, ...patch })
-  const done = SURVEY_DEPARTMENTS.filter((x) => deptState(depts[x.key]) !== 'empty').length
+  // Every department is required now, so an old "skip" is cleared on the first answer.
+  const set = (patch: Partial<DeptReview>) => onChange(d.key, { ...r, skip: undefined, ...patch })
+  const done = SURVEY_DEPARTMENTS.filter((x) => deptState(depts[x.key]) === 'done').length
   return (
     <div className="dept-reviewer">
       <div className="dept-tabs" role="tablist">
@@ -41,7 +45,6 @@ export function DeptReviewer({ depts, myDept, index, onIndex, onChange }: {
             <span className="dept-tab-emoji">{x.emoji}</span>
             <span className="dept-tab-name">{x.ar}</span>
             {deptState(depts[x.key]) === 'done' && <Check size={12} />}
-            {deptState(depts[x.key]) === 'skipped' && <Ban size={12} />}
           </button>
         ))}
       </div>
@@ -54,30 +57,24 @@ export function DeptReviewer({ depts, myDept, index, onIndex, onChange }: {
             <h2>{d.ar} <span className="muted">· {d.name}</span></h2>
             {myDept === d.key && <span className="pill tone-amber">This is your department — your score is counted separately · دي إدارتك</span>}
           </div>
-          <label className="inline-check skip-toggle">
-            <input type="checkbox" checked={Boolean(r.skip)} onChange={(e) => set({ skip: e.target.checked })} />
-            <span>I don’t deal with them <span lang="ar">مش بتعامل معاهم</span></span>
-          </label>
         </div>
 
-        {!r.skip && (
-          <>
-            <p className="field-label">1. Your opinion of {d.name} <span className="ar-inline" lang="ar">١- رأيك في {d.ar}</span></p>
+        <>
+            <p className="field-label">1. Your opinion of {d.name} <Req /> <span className="ar-inline" lang="ar">١- رأيك في {d.ar}</span></p>
             <ScoreScale value={r.score} onChange={(v) => set({ score: v })} />
             <label>
-              2. Biggest strengths <span className="ar-line" lang="ar" dir="rtl">٢- أكبر مميزات {d.ar}</span>
+              <span>2. Biggest strengths <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٢- أكبر مميزات {d.ar}</span>
               <textarea rows={2} dir="auto" value={r.strengths ?? ''} onChange={(e) => set({ strengths: e.target.value })} placeholder="e.g. Always answer the phone, fast with hospitals…" />
             </label>
             <label>
-              3. Biggest weaknesses <span className="ar-line" lang="ar" dir="rtl">٣- أكبر عيوب {d.ar}</span>
+              <span>3. Biggest weaknesses <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٣- أكبر عيوب {d.ar}</span>
               <textarea rows={2} dir="auto" value={r.weaknesses ?? ''} onChange={(e) => set({ weaknesses: e.target.value })} placeholder="e.g. Late replies, papers get lost…" />
             </label>
             <label>
-              4. Ideas to improve it <span className="ar-line" lang="ar" dir="rtl">٤- أفكار لتحسين {d.ar}</span>
+              <span>4. Ideas to improve it <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٤- أفكار لتحسين {d.ar}</span>
               <textarea rows={2} dir="auto" value={r.ideas ?? ''} onChange={(e) => set({ ideas: e.target.value })} placeholder="One clear idea is enough" />
             </label>
-          </>
-        )}
+        </>
         <div className="row between">
           <button type="button" className="secondary" disabled={index === 0} onClick={() => onIndex(index - 1)}><ArrowLeft size={15} /> {index > 0 ? SURVEY_DEPARTMENTS[index - 1].ar : ''}</button>
           {index < SURVEY_DEPARTMENTS.length - 1 && <button type="button" onClick={() => onIndex(index + 1)}>{SURVEY_DEPARTMENTS[index + 1].ar} <ArrowRight size={15} /></button>}
@@ -87,7 +84,7 @@ export function DeptReviewer({ depts, myDept, index, onIndex, onChange }: {
   )
 }
 
-/** Three numbered name boxes with suggestions from the staff list, and an optional reason. */
+/** Three required name boxes with suggestions from the staff list, and an optional reason. */
 export function TopThreeNames({ title, ar, value, names, onChange, icon }: {
   title: string
   ar: string
@@ -101,12 +98,12 @@ export function TopThreeNames({ title, ar, value, names, onChange, icon }: {
   const set = (i: number, patch: Partial<Nomination>) => onChange(list.map((n, j) => (j === i ? { ...n, ...patch } : n)))
   return (
     <section className="card top-three">
-      <h2>{icon ?? <Crown size={18} />} {title} <span className="ar-title" lang="ar">{ar}</span></h2>
+      <h2>{icon ?? <Crown size={18} />} {title} <Req /> <span className="ar-title" lang="ar">{ar}</span></h2>
       <datalist id={id}>{names.map((n) => <option key={n} value={n} />)}</datalist>
       {list.map((n, i) => (
         <div key={i} className="top-three-row">
           <span className={`rank-badge m${i + 1}`}>{i + 1}</span>
-          <input list={id} dir="auto" value={n.name} onChange={(e) => set(i, { name: e.target.value })} placeholder={i === 0 ? 'Type a name · اكتب الاسم' : '(optional)'} />
+          <input list={id} dir="auto" value={n.name} onChange={(e) => set(i, { name: e.target.value })} placeholder={`${i + 1}. Type a name · اكتب الاسم`} aria-required="true" />
           <input dir="auto" className="reason" value={n.reason ?? ''} onChange={(e) => set(i, { reason: e.target.value })} placeholder="Why? (optional) · ليه؟" disabled={!n.name.trim()} />
         </div>
       ))}
@@ -114,12 +111,12 @@ export function TopThreeNames({ title, ar, value, names, onChange, icon }: {
   )
 }
 
-/** Pick up to three departments in order. */
+/** Pick three departments in order. */
 export function TopThreeDepartments({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
   return (
     <section className="card top-three">
-      <h2><Crown size={18} /> Best department <span className="ar-title" lang="ar">أحسن إدارة</span></h2>
-      <p className="muted small">Tap in order: first tap = 1st place. Tap again to remove. · اضغط بالترتيب</p>
+      <h2><Crown size={18} /> Best department <Req /> <span className="ar-title" lang="ar">أحسن إدارة</span></h2>
+      <p className="muted small">Tap 3 in order: first tap = 1st place. Tap again to remove. · اختار ٣ بالترتيب</p>
       <div className="chips">
         {SURVEY_DEPARTMENTS.map((d) => {
           const rank = value.indexOf(d.key)
@@ -154,11 +151,11 @@ export function NumberedList({ title, ar, count, value, onChange, suggestions, p
   }
   return (
     <section className="card numbered">
-      <h2>{title} <span className="ar-title" lang="ar">{ar}</span></h2>
+      <h2>{title} <Req /> <span className="ar-title" lang="ar">{ar}</span></h2>
       {list.map((v, i) => (
         <div key={i} className="numbered-row">
           <span className="num-badge">{i + 1}</span>
-          <input dir="auto" value={v} onChange={(e) => set(i, e.target.value)} placeholder={i === 0 ? placeholder : '(optional)'} />
+          <input dir="auto" value={v} onChange={(e) => set(i, e.target.value)} placeholder={i === 0 ? placeholder : `${i + 1}.`} aria-required="true" />
         </div>
       ))}
       {suggestions && (
