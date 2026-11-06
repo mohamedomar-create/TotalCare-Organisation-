@@ -86,3 +86,65 @@ describe('results', () => {
     expect(allIdeas([subs[1]])).toEqual([])
   })
 })
+
+import { applySegment, audit, companyScore, crossMatrix, highlights, themeCounts, themesOf } from './results'
+
+describe('dashboard analytics', () => {
+  const mk = (id: string, my: string, depts: Record<string, { score?: number; skip?: boolean; strengths?: string; weaknesses?: string }>, extra: Partial<Submission> = {}, more: SurveyAnswers = {}) =>
+    ({ id, answers: { v: 2, my_dept: my, depts, ...more }, status: 'submitted', submitted_at: '2026-11-0' + (Number(id) % 9 + 1) + 'T10:00:00Z', quality: { level: 'high', score: 95, minutes: 9 }, ...extra } as unknown as Submission)
+  const subs = [
+    mk('1', 'sales', { sales: { score: 10 }, accounting: { score: 3, weaknesses: 'Payments are always late' }, maintenance: { score: 9, strengths: 'Fast response and very helpful' } }, {}, { best_departments: ['sales'] }),
+    mk('2', 'sales', { accounting: { score: 4, weaknesses: 'تأخير في الدفع' }, maintenance: { score: 8, strengths: 'بيرد بسرعة' } }, {}, { best_departments: ['maintenance'] }),
+    mk('3', 'sales', { accounting: { score: 2 }, maintenance: { score: 10 }, hr_legal: { skip: true } }, { quality: { level: 'low', score: 40, straight_lined: true, minutes: 1, rushed: true } }),
+    mk('4', 'maintenance', { maintenance: { score: 10 }, accounting: { score: 6 } }, { anonymous: true }),
+  ]
+
+  it('scores the company without self-ratings', () => {
+    const c = companyScore(subs)
+    expect(c.n).toBe(7) // 3+2+2 from sales on others, 1 from maintenance on accounting
+    expect(c.average).toBe(6)
+    expect(c.index).toBe(56)
+  })
+
+  it('builds the who-rates-whom matrix and hides tiny groups', () => {
+    const m = crossMatrix(subs)
+    const sales = m.find((r) => r.from.key === 'sales')!
+    expect(sales.n).toBe(3)
+    const acc = sales.cells[3]
+    expect(acc).toMatchObject({ average: 3, n: 3, hidden: false })
+    const maintRow = m.find((r) => r.from.key === 'maintenance')!
+    expect(maintRow.cells[3]).toMatchObject({ n: 1, hidden: true })
+    expect(maintRow.cells[5].self).toBe(true)
+  })
+
+  it('sorts free text into themes in English and Arabic', () => {
+    expect(themesOf('تأخير في الدفع')).toEqual(['speed', 'payments'])
+    expect(themesOf('Fast response and very helpful')).toContain('attitude')
+    const dr = departmentResults(subs)
+    expect(themeCounts(dr, 'weaknesses')[0]).toMatchObject({ key: 'speed', count: 2 })
+    expect(themeCounts(dr, 'strengths').find((t) => t.key === 'speed')!.count).toBe(2)
+  })
+
+  it('names the best and worst', () => {
+    const h = highlights(subs)
+    expect(h.find((x) => x.label === 'Best-rated department')!.value).toBe('Maintenance')
+    expect(h.find((x) => x.label === 'Lowest-rated department')!.value).toBe('Accounting')
+    expect(h.find((x) => x.label === 'Biggest complaint')!.value).toBe('Speed & delays')
+  })
+
+  it('audits quality, completeness, bias and own-department voting', () => {
+    const a = audit(subs)
+    expect(a.quality).toMatchObject({ high: 3, low: 1 })
+    expect(a.flags).toMatchObject({ straightLined: 1, rushed: 1 })
+    expect(a.flagged[0].id).toBe('3')
+    expect(a.ownDeptVotes).toBe(50)
+    expect(a.selfBias.find((b) => b.key === 'maintenance')).toMatchObject({ self: 10, others: 9 })
+    expect(a.completeness.find((c) => c.label.startsWith('Said'))!.pct).toBe(100)
+    expect(a.skips[0]).toMatchObject({ key: 'hr_legal', skips: 1 })
+  })
+
+  it('filters by segment', () => {
+    expect(applySegment(subs, { dept: 'sales' }).length).toBe(3)
+    expect(applySegment(subs, { mode: 'anonymous' }).map((s) => s.id)).toEqual(['4'])
+  })
+})

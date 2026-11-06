@@ -37,7 +37,13 @@ Each response gets an answer-quality score (0–100); the results page can leave
 
 ## Admin
 
-- **Results**: departments ranked by the average score from *other* departments (self-ratings shown apart), score distribution, a score index (% of 9–10 minus % of 1–6), all strengths, weaknesses and ideas per department (with the respondent's department, never a name), podiums for best manager/department/employee (3-2-1 points, spellings merged, reasons), the most-named company problems and strengths, all ideas, suggested initiatives, and a CSV export.
+- **Results dashboard** (`/admin`), with filters by department, level, time at TotalCare, location and named/anonymous (any filter leaving fewer than 3 answers is hidden), print/PDF and CSV export:
+  - **Overview**: company score out of 10 (and 0–100 index), participation, anonymous share, answer quality, highlights (best/lowest-rated department, most praised, biggest complaint, top company strength and problem, most-nominated manager and employee), department ranking, and praise vs. complaints by theme.
+  - **Departments**: a card per department (score, distribution, score index, self-rating, all comments, one-click improvement plan) and a "who rates whom" heat map.
+  - **Best & worst**: praise and complaints sorted automatically into themes in English and Arabic (speed & delays, communication, approvals, payments, stock & parts, Odoo, staffing, training, attitude, quality, customers, planning) with example quotes, complaints by department, company problems and strengths, best- and lowest-rated departments.
+  - **People**: best manager, department and employee podiums (3-2-1 points, spellings merged, reasons).
+  - **Ideas & actions**: suggested initiatives and every idea, one click to an initiative.
+  - **Audit**: answer quality, flagged answers with reasons, median time, completeness of each section, self-rating bias, own-department "best" votes, skipped departments and answers per day.
 - **Coverage & invites**: answers per department against the headcount in the people directory, who hasn't answered yet (names only, never answers), and a ready Arabic/English WhatsApp invitation.
 - **Responses**: each response (anonymous ones labelled 🔒), with its answer-quality score.
 - **Speak-up inbox**: read and reply to anonymous messages, with status.
