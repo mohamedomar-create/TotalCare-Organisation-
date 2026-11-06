@@ -1,52 +1,62 @@
 # TotalCare Organisation
 
-An internal staff hub for TotalCare Egypt, where people share ideas, thank each other, speak up safely and help shape the organisation.
+The TotalCare Egypt people survey: every colleague reviews each department, names the best, says what holds the company back, and suggests ideas — safely, in simple English and Egyptian Arabic. The results turn into initiatives that everyone can follow.
 
-**Community and loyalty**
-- **Home**: a greeting, your points and level, one-tap actions (share an idea, thank a colleague, the survey, speak up safely), news, top ideas, recent thank-yous, a weekly pulse poll, birthdays, work anniversaries and new joiners.
-- **Ideas board**: anyone can post an idea, with or without their name. Colleagues like it and comment on it. The admin moves it through New → Under review → Planned → Done (or Not now) and can add a management reply. Ideas posted without a name show "A colleague from Sales", and only the admin can see who wrote them.
-- **Kudos wall**: public thank-yous tagged with a TotalCare value (teamwork, customer first, integrity, fresh idea, extra mile, always helping), plus the month's most-thanked colleagues.
-- **Sectors**: a colour-coded page for each department, showing its team, ideas and thank-yous.
-- **Points and rewards**: points for taking part, levels from Newcomer to Legend, badges, a leaderboard and a rewards shop (coffee, lunch with the MD, vouchers, a day off). The admin approves reward requests.
-- **Pulse polls**: one quick question at a time. Answers are private, and only totals are shown.
-- **My profile**: sector, job title, birthday (day and month only) and joining date.
-- **Admin → Community**: approve reward requests, edit the shop, post announcements (management can do this too), run polls and award points.
+The survey is the front door. The earlier community features (ideas board, kudos, sectors, points & rewards, polls) and the read-only org chart/directory are switched off in `src/lib/features.ts`; their code and data are kept and can be switched back on there.
 
-**Organisation survey**
-- **Survey progress**: each person's progress, with one button to start or continue.
-- **Step-by-step submission**, a full-screen wizard in 7 steps with autosave and a progress bar. Everything is in simple English with Arabic underneath:
-  1. About you: department and level, picked from buttons.
-  2. Quick check: 8 short statements rated with one tap on a face scale.
-  3. Your work: tap what you do (tenders, installation, EDA registration, Odoo and so on), or add your own.
-  4. Problems: pick and rank your top 5 (approvals, WhatsApp instead of a system, collections, customs and so on).
-  5. Org chart: a drag-and-drop board with departments as columns and levels as rows (Owners, Managing Director, Managers, Supervisors, Staff). Start from a suggested structure of general roles such as Sales Manager or Finance Manager, then drag ready-made roles between boxes, drop a role on the library to remove it, and tap a role to set its title, number of people, who it reports to and its duties.
-  6. Ideas: your top 3 ideas, one thing to change tomorrow, and an eNPS score.
-  7. Check and send.
-- **Send feedback**: a button on every page that sends a quick idea, problem, question or praise to the admin.
-- **Executive dashboard**: participation, a 0–100 health index, eNPS, auto-written key findings, health by area, a department × area heat map, biggest problems, survey trend, the ideas pipeline, period and department filters, CSV export and print/PDF.
-- **Survey control**: one survey per person by default. The admin can open a new round for everyone, give one person +1 on the Users page, or reset all data.
-- **Admin inbox**: every submission and feedback note, with unread badges, search, review status and private notes.
-- **Org chart and directory** showing departments, reporting lines and contacts.
-- **Reports for management**: anonymised summaries with charts, published by the admin.
-- **E-mail**: the admin gets an e-mail for every submission, feedback note, new idea (including the real author of an anonymous idea) and reward request, plus a daily or weekly summary of all results. Management gets an e-mail when a report is published. Configure this on the admin **E-mail** page.
+## The survey (6 short steps, autosave, works offline)
 
-Inspiration: Typeform (one topic per screen), Culture Amp and Officevibe (pulse ratings, eNPS, pick-lists), and the TotalCare Org Board (drag-and-drop org chart).
+1. **About you**: department, level, time at TotalCare and where you work (all optional; "Prefer not to say" is always there).
+2. **Departments**: for each of the 8 departments — Marketing (التسويق), Installations (التركيبات), Collections (التحصيل), Accounting (الحسابات), Sales (المبيعات), Maintenance (الصيانة), Purchasing & Warehouses (المشتريات والمخازن), HR & Legal (الموارد البشرية والقانوني):
+   1. your opinion from 1 to 10, 2. its biggest strengths, 3. its biggest weaknesses, 4. ideas to improve it.
+   One department per screen with tabs; "I don't deal with them" skips a department. Your own department is marked and its score counted separately.
+3. **The best**: best manager, best department and best employee — top 3 each, with an optional reason. Names are suggested from the staff list.
+4. **The company**: biggest problems (3) and best strengths (3), with tap-to-fill suggestions so similar answers are counted together.
+5. **Ideas**: up to 5 ideas to develop the company. *The best idea is rewarded and implemented where possible.*
+6. **Check & send**: a summary to review, the answer checks, and the choice to send **with my name** or **anonymously**.
+
+**Answer checks (consistent answers).** Before sending, the survey asks once when answers don't fit together, and the person fixes them or confirms them:
+- a department picked as one of the best but rated 4/10 or lower;
+- a low score with only strengths written, or a 9–10 with only weaknesses;
+- nominating yourself, or the same person twice (must be fixed — spelling variants such as "م. أحمد" and "احمد" count as the same name);
+- the same score for every department, or the whole survey answered in under 3 minutes.
+Each response gets an answer-quality score (0–100); the results page can leave out low-quality answers.
+
+## Speaking up safely
+
+- **Anonymous answers.** "Send anonymously" copies the answers into a new row with no author and only the date, then deletes the draft. A separate receipt records only that the person took part (no time, no link), so participation and the one-survey-per-person limit still work. Nobody — including the admin — can link the answers back to the person.
+- **Reward for anonymous ideas.** An anonymous author with ideas gets a private reward code (e.g. `IDEA-7F3K9Q`). If their idea wins, the code is announced on "You said, we did" and they claim the reward with it.
+- **Speak up safely** (`/speak-up`): a separate channel for sensitive matters (a manager, harassment, gifts or pressure in tenders, safety, pay). Messages are stored with no account, no time and no e-mail. The sender gets a case code to read the admin's reply.
+
+## Initiatives — "You said, we did"
+
+- The results page suggests initiatives: an **improvement plan** for each low-rated department (built from its weaknesses and ideas) and ready-made TotalCare plays for the most-named problems (e.g. a delegation-of-authority matrix for "too many signatures", a weekly collections war-room, Odoo-first instead of WhatsApp, a 90-day import plan, an EDA registration tracker).
+- Any idea from the survey can be turned into an initiative in one click.
+- Each initiative has an owner, KPI with today's value and target, start and deadline, impact and effort (with an impact × effort matrix showing quick wins), progress updates, and a "winning idea" flag.
+- Staff see published initiatives with progress, and can **support** them or **volunteer** to help (counts are public, names only to management). Staff can also propose initiatives, which stay hidden until management approves them.
+
+## Admin
+
+- **Results**: departments ranked by the average score from *other* departments (self-ratings shown apart), score distribution, a score index (% of 9–10 minus % of 1–6), all strengths, weaknesses and ideas per department (with the respondent's department, never a name), podiums for best manager/department/employee (3-2-1 points, spellings merged, reasons), the most-named company problems and strengths, all ideas, suggested initiatives, and a CSV export.
+- **Coverage & invites**: answers per department against the headcount in the people directory, who hasn't answered yet (names only, never answers), and a ready Arabic/English WhatsApp invitation.
+- **Responses**: each response (anonymous ones labelled 🔒), with its answer-quality score.
+- **Speak-up inbox**: read and reply to anonymous messages, with status.
+- **Survey settings & earlier pulse** (`/admin/pulse`): the earlier dashboard, the one-survey-per-person limit, "open a new round" and reset.
 
 ## Who sees what (confidential model)
 
 | Role | Can see |
 |---|---|
-| staff | Org chart, directory, and **only their own** submissions |
-| admin | Everything, **including the author's name on each submission**; manages the directory, roles and reports |
-| everyone | Ideas (anonymous ones without a name), kudos, sectors, announcements, poll totals, the leaderboard, their own points |
-| management | **Only published reports**. These contain no names, and departments with fewer than 3 responses are merged into one group |
+| staff | **Only their own** named answers (anonymous answers can't be seen by anyone as theirs), published initiatives with support counts, and replies to their own Speak-up case codes |
+| admin | All answers — the name only on answers sent **with a name**; anonymous answers and Speak-up messages have no name stored at all. Who has taken part (never which answers). Manages initiatives, the directory, roles and reports |
+| management | **Published reports** (no names; departments with fewer than 3 responses merged) and all initiatives, including volunteers' names |
 
-Staff are told this on the submission form. The rules are enforced by Postgres row-level security (`supabase/migrations/0001_init.sql`), not only by the UI. Generated reports are drafts: the admin should read them and remove anything in the text that could identify a person before publishing.
+Staff are told this in the survey. The rules are enforced by Postgres row-level security and database functions (`supabase/migrations/0001_init.sql`, `0006_survey_v2.sql`), not only by the UI. `npm test` checks the answer checks and results; the migrations were also tested in a local Postgres against these rules (anonymous rows have no author and day-only dates, staff can't read Speak-up messages or others' support, proposals stay hidden until approved). Generated reports are drafts: the admin should read them and remove anything in the text that could identify a person before publishing.
 
 ## Setup
 
 1. Create a Supabase project at https://supabase.com.
-2. In the **SQL editor**, run the files in `supabase/migrations/` in order. Optionally run `supabase/seed.sql` for example data.
+2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives). Optionally run `supabase/seed.sql` for example data.
 3. Under **Authentication → URL configuration**, set the Site URL to where the app will be hosted (for local development, `http://localhost:5173`).
 4. Copy `.env.example` to `.env` and fill in the project URL and anon key from **Project Settings → API**.
 5. Install and run:

@@ -136,12 +136,32 @@ async function submissionEmail(id: string) {
   const { data: sub } = await db.from('submissions').select('*').eq('id', id).single()
   if (!sub) return { sent: false, reason: 'Not found' }
   const [{ data: author }, depts] = await Promise.all([
-    db.from('profiles').select('full_name, email').eq('id', sub.author_id).single(),
+    sub.author_id ? db.from('profiles').select('full_name, email').eq('id', sub.author_id).single() : Promise.resolve({ data: null }),
     deptNames(),
   ])
-  const name = author?.full_name || author?.email || 'Someone'
+  // Anonymous answers have no author: never look one up or guess.
+  const name = sub.anonymous ? 'An anonymous colleague' : author?.full_name || author?.email || 'Someone'
   const board = sub.structure?.roles ? sub.structure : null
   const ideas = [sub.quick_win, ...(sub.ideas ?? [])].filter((x: string) => x?.trim())
+  const a = sub.answers ?? {}
+  if (a.v === 2) {
+    const DEPTS: [string, string][] = [['marketing', 'Marketing'], ['installations', 'Installations'], ['collections', 'Collections'], ['accounting', 'Accounting'], ['sales', 'Sales'], ['maintenance', 'Maintenance'], ['purchasing', 'Purchasing & Warehouses'], ['hr_legal', 'HR & Legal']]
+    const names = (xs: { name?: string }[] = []) => xs.map((x) => x?.name?.trim()).filter(Boolean) as string[]
+    const texts = (xs: string[] = []) => xs.map((x) => x?.trim()).filter(Boolean)
+    const body2 = [
+      p(`<strong>${esc(name)}</strong>${a.my_dept ? ' · ' + esc(a.my_dept) : ''}${sub.role_level ? ' · ' + esc(sub.role_level) : ''}${sub.quality?.score !== undefined ? ` · answer quality ${sub.quality.score}/100` : ''}`),
+      h2('Department scores (1–10)'),
+      bars(DEPTS.filter(([k]) => typeof a.depts?.[k]?.score === 'number').map(([k, label]) => ({ label: label + (a.my_dept === k ? ' (own)' : ''), value: a.depts[k].score, max: 10, text: String(a.depts[k].score) }))),
+      h2('Best manager / department / employee'),
+      list([`Managers: ${esc(names(a.best_managers).join(', ') || '—')}`, `Departments: ${esc((a.best_departments ?? []).join(', ') || '—')}`, `Employees: ${esc(names(a.best_employees).join(', ') || '—')}`]),
+      h2('Biggest company problems'),
+      list(texts(a.company_problems).map(esc)),
+      h2('Ideas'),
+      list(texts(a.company_ideas).map(esc)),
+    ].join('')
+    const to2 = await emailsFor(['admin'], s.extra_recipients)
+    return send('submission', to2, `New survey answer from ${name}`, layout(`New survey answer from ${name}`, body2, s.app_url, `/admin/submissions/${id}`))
+  }
   const body = [
     p(`<strong>${esc(name)}</strong> · ${esc(depts.get(sub.department_id) ?? 'Department not given')}${sub.role_level ? ' · ' + esc(sub.role_level) : ''}`),
     h2('Quick check'),

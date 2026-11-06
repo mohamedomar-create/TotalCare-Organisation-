@@ -1,24 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Lock, Send, Trash2, WifiOff } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, CheckCircle2, Copy, EyeOff, Gift, Lock, Send, Trash2, UserRound, Users, WifiOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../lib/auth'
 import { useDirectory } from '../lib/useDirectory'
+import { useStaff } from '../lib/community'
 import type { Submission } from '../lib/types'
 import {
-  CHALLENGE_OPTIONS,
-  MAX_CHALLENGES,
-  RATING_DIMENSIONS,
-  RESPONSIBILITY_OPTIONS,
-  ROLE_LEVELS,
   ARABIC,
+  LOCATION_OPTIONS,
+  MY_DEPARTMENT_EXTRA,
+  PROBLEM_SUGGESTIONS,
+  ROLE_LEVELS,
+  STRENGTH_SUGGESTIONS,
+  SURVEY_DEPARTMENTS,
+  TENURE_OPTIONS,
   WIZARD_STEPS,
+  type DeptReview,
+  type SurveyAnswers,
 } from '../lib/survey'
+import { assessQuality, newRewardCode, qualityRecord } from '../lib/quality'
 import Chips from '../components/Chips'
-import RatingRow from '../components/RatingRow'
-import OrgBoardEditor from '../components/board/OrgBoardEditor'
-import { asBoard } from '../lib/orgBoard'
-import SubmissionSummary from '../components/SubmissionSummary'
 import PrivacyNotice from '../components/PrivacyNotice'
+import SubmissionSummary from '../components/SubmissionSummary'
+import SurveySummary from '../components/survey/SurveySummary'
+import { DeptReviewer, NumberedList, RewardBanner, TopThreeDepartments, TopThreeNames } from '../components/survey/SurveyParts'
 
 const LAST = WIZARD_STEPS.length - 1
 
@@ -50,13 +56,18 @@ function clearBackup(key: string) {
 export default function VisionWizard() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { departments } = useDirectory()
+  const { profile } = useAuth()
+  const { departments, people } = useDirectory()
+  const staff = useStaff()
+  const [deptIndex, setDeptIndex] = useState(0)
+  const [copied, setCopied] = useState(false)
   const [sub, setSub] = useState<Submission | null>(null)
   const [step, setStep] = useState(0)
   const [error, setError] = useState<string | null>(null) // could not open the draft at all
   const [saveError, setSaveError] = useState<string | null>(null) // a save failed; work is kept and retried
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'dirty' | 'offline'>('saved')
-  const [done, setDone] = useState(false)
+  const [done, setDone] = useState<false | 'named' | 'anonymous'>(false)
+  const [anonymous, setAnonymous] = useState<boolean | null>(null)
   const pending = useRef<Partial<Submission>>({})
   const timer = useRef<number | undefined>(undefined)
   const inFlight = useRef<Promise<boolean> | null>(null)
@@ -152,6 +163,8 @@ export default function VisionWizard() {
 
   function change(patch: Partial<Submission>) {
     if (locked) return
+    // Remember when answering started, to spot answers given too fast to be read.
+    if (!sub?.answers?.started_at && !patch.answers?.started_at) patch = { ...patch, answers: { ...(sub?.answers ?? {}), ...(patch.answers ?? {}), started_at: new Date().toISOString() } }
     setSub((s) => (s ? { ...s, ...patch } : s))
     pending.current = { ...pending.current, ...patch }
     writeBackup(backupKey, pending.current)
@@ -169,10 +182,18 @@ export default function VisionWizard() {
   }
 
   async function submit() {
+    if (!sub) return
+    if (anonymous === null) return setSaveError('Choose how to send your answers: with your name or anonymously.')
+    const a = (sub.answers ?? {}) as SurveyAnswers
+    const q = assessQuality(a, profile?.full_name ?? '')
+    if (q.open.some((i) => i.severity === 'hard')) return setSaveError('Please fix the points marked in red first.')
+    // An anonymous author keeps a code to claim the best-idea reward; nobody else can link it to them.
+    const hasIdeas = [...(a.company_ideas ?? []), ...Object.values(a.depts ?? {}).map((r) => r.ideas ?? '')].some((t) => t?.trim())
+    if (anonymous && hasIdeas && !a.reward_code) change({ answers: { ...a, reward_code: newRewardCode() } })
     if (!(await flush())) return
     let message: string | null = null
     try {
-      const { error } = await supabase.from('submissions').update({ status: 'submitted', current_step: LAST }).eq('id', id!)
+      const { error } = await supabase.rpc('submit_survey', { p_id: id!, p_anonymous: anonymous, p_quality: qualityRecord(q) })
       message = error?.message ?? null
     } catch (e) {
       message = String(e)
@@ -180,7 +201,7 @@ export default function VisionWizard() {
     if (message) return setSaveError(isNetworkError(message) ? 'No connection — please check your internet and press Send again. Nothing was lost.' : `Could not send: ${message}`)
     clearBackup(backupKey)
     setSub((s) => (s ? { ...s, status: 'submitted' } : s))
-    setDone(true)
+    setDone(anonymous ? 'anonymous' : 'named')
   }
 
   async function remove() {
@@ -196,39 +217,79 @@ export default function VisionWizard() {
   if (error) return <div className="page"><p className="error">{error}</p><button type="button" onClick={() => location.reload()}>Try again</button></div>
   if (!sub) return <div className="page"><p className="muted">Loading…</p></div>
 
+  const answers = (sub.answers ?? {}) as SurveyAnswers
+  // Surveys started before the department survey keep their original screens, read-only.
+  if (answers.v !== 2 && sub.status === 'submitted') {
+    return (
+      <div className="page wizard">
+        <Link to="/vision" className="link"><ArrowLeft size={15} /> My survey</Link>
+        <h1>Your earlier answers <span className="ar-title" lang="ar">إجاباتك السابقة</span></h1>
+        <SubmissionSummary sub={sub} departmentName={sub.department_id ? deptName.get(sub.department_id) : undefined} />
+      </div>
+    )
+  }
+
   if (done) {
+    const code = answers.reward_code
     return (
       <div className="page narrow-page center-text">
         <div className="card success-card">
           <CheckCircle2 size={56} className="success-icon" />
-          <h1>Thank you!</h1>
-          <p>Your submission has been sent to the admin. It is now locked, but you can start another one any time.</p>
+          <h1>Thank you! · شكراً</h1>
+          {done === 'anonymous' ? (
+            <p>Your answers were sent <b>anonymously</b>. They are stored with no name, so they no longer appear in “My survey” — that’s how we keep them anonymous.</p>
+          ) : (
+            <p>Your answers were sent. Only the project admin can see your name; management sees summaries without names.</p>
+          )}
+          {done === 'anonymous' && code && (
+            <div className="reward-code">
+              <Gift size={22} />
+              <p><b>Your idea reward code · كود مكافأة الفكرة</b></p>
+              <p className="case-code">{code}</p>
+              <button type="button" className="secondary" onClick={() => { void navigator.clipboard?.writeText(code); setCopied(true) }}><Copy size={15} /> {copied ? 'Copied' : 'Copy'}</button>
+              <p className="muted small">If your idea wins, we’ll announce this code. Show it to claim your reward — it’s the only link between you and your idea. Take a screenshot now.</p>
+              <p className="muted small" lang="ar" dir="rtl">لو فكرتك كسبت هنعلن الكود ده. صوّره دلوقتي علشان تستلم مكافأتك.</p>
+            </div>
+          )}
+          <p className="muted">Results and the initiatives that come out of them will be shared on “You said, we did”.</p>
           <div className="row center">
             <Link className="button" to="/">Back to home</Link>
-            <Link className="button secondary" to="/vision">My submissions</Link>
+            <Link className="button secondary" to="/initiatives">You said, we did</Link>
           </div>
         </div>
       </div>
     )
   }
 
-  const board = asBoard(sub.structure)
-  const answeredRatings = RATING_DIMENSIONS.filter((d) => sub.ratings?.[d.key]).length
+  const setAnswers = (patch: Partial<SurveyAnswers>) => change({ answers: { ...answers, ...patch, v: 2 } })
+  const setDept = (key: string, r: DeptReview) => setAnswers({ depts: { ...(answers.depts ?? {}), [key]: r } })
+  const quality = assessQuality(answers, profile?.full_name ?? '')
+  const hardOpen = quality.open.filter((i) => i.severity === 'hard')
+  const softOpen = quality.open.filter((i) => i.severity === 'soft')
+  const names = [...new Set([...staff.map((s) => s.full_name), ...people.map((p) => p.full_name)].filter(Boolean))].sort()
   const progress = Math.round((step / LAST) * 100)
+  const myDeptChoices = [...SURVEY_DEPARTMENTS, ...MY_DEPARTMENT_EXTRA]
+
+  function chooseMyDept(key: string) {
+    const name = myDeptChoices.find((d) => d.key === key)?.name.toLowerCase()
+    // Also link the matching directory department, so the older reports keep working.
+    const match = departments.find((d) => d.name.toLowerCase() === name)
+    change({ answers: { ...answers, my_dept: key, v: 2 }, department_id: match?.id ?? null })
+  }
 
   return (
-    <div className={`page wizard ${step === 4 ? 'wide' : ''}`}>
+    <div className="page wizard">
       <div className="wizard-head">
         <div className="row between">
-          <Link to="/vision" className="link"><ArrowLeft size={15} /> My submissions</Link>
+          <Link to="/vision" className="link"><ArrowLeft size={15} /> My survey</Link>
           <span className="muted small save-state">
-            {locked ? <><Lock size={13} /> Submitted {sub.submitted_at && new Date(sub.submitted_at).toLocaleDateString()}</> : saveState === 'saved' ? <><Check size={13} /> Saved</> : saveState === 'saving' ? 'Saving…' : saveState === 'offline' ? <><WifiOff size={13} /> Offline — kept on this device</> : 'Unsaved changes'}
+            {locked ? <><Lock size={13} /> Sent {sub.submitted_at && new Date(sub.submitted_at).toLocaleDateString()}</> : saveState === 'saved' ? <><Check size={13} /> Saved</> : saveState === 'saving' ? 'Saving…' : saveState === 'offline' ? <><WifiOff size={13} /> Offline — kept on this device</> : 'Unsaved changes'}
           </span>
         </div>
         {saveError && (
           <div className="save-banner" role="status">
             <WifiOff size={16} /> <span className="grow">{saveError}</span>
-            <button type="button" className="small-btn secondary" onClick={() => { retries.current = 0; void flush() }}>Retry now</button>
+            <button type="button" className="small-btn secondary" onClick={() => { retries.current = 0; setSaveError(null); void flush() }}>Retry now</button>
           </div>
         )}
         <div className="progress"><div className="progress-bar" style={{ width: `${progress}%` }} /></div>
@@ -253,108 +314,102 @@ export default function VisionWizard() {
             <PrivacyNotice />
             <p className="field-label">Your department <span className="ar-inline" lang="ar">إدارتك</span></p>
             <div className="chips">
-              {departments.map((d) => (
-                <button key={d.id} type="button" className={`chip ${sub.department_id === d.id ? 'on' : ''}`} onClick={() => change({ department_id: d.id })} style={sub.department_id === d.id ? { background: d.color, borderColor: d.color } : undefined}>
-                  {d.name}
+              {myDeptChoices.map((d) => (
+                <button key={d.key} type="button" className={`chip ${answers.my_dept === d.key ? 'on' : ''}`} onClick={() => chooseMyDept(d.key)}>
+                  <span className="chip-text">{d.name}<span className="chip-ar" lang="ar">{d.ar}</span></span>
                 </button>
               ))}
-              <button type="button" className={`chip ${sub.department_id === null ? 'on' : ''}`} onClick={() => change({ department_id: null })}>
+              <button type="button" className={`chip ${answers.v === 2 && !answers.my_dept ? 'on' : ''}`} onClick={() => change({ answers: { ...answers, my_dept: undefined, v: 2 }, department_id: null })}>
                 <span className="chip-text">Prefer not to say<span className="chip-ar" lang="ar">أفضّل ألا أقول</span></span>
               </button>
             </div>
             <p className="field-label">Your level <span className="ar-inline" lang="ar">مستواك الوظيفي</span></p>
             <Chips options={ROLE_LEVELS} selected={sub.role_level ? [sub.role_level] : []} onChange={(v) => change({ role_level: v[v.length - 1] ?? '' })} translate={ARABIC} />
+            <p className="field-label">How long have you been at TotalCare? <span className="ar-inline" lang="ar">بقالك قد إيه في TotalCare؟</span></p>
+            <Chips options={TENURE_OPTIONS} selected={answers.tenure ? [answers.tenure] : []} onChange={(v) => setAnswers({ tenure: v[v.length - 1] })} translate={ARABIC} />
+            <p className="field-label">Where do you work most of the time? <span className="ar-inline" lang="ar">بتشتغل فين أغلب الوقت؟</span></p>
+            <Chips options={LOCATION_OPTIONS} selected={answers.location ? [answers.location] : []} onChange={(v) => setAnswers({ location: v[v.length - 1] })} translate={ARABIC} />
+            <p className="muted small">All optional. In a small team, “Prefer not to say” makes you harder to identify.</p>
           </>
         )}
 
         {step === 1 && (
           <>
-            <h1>How is work going? <span className="ar-title" lang="ar">الشغل ماشي إزاي؟</span></h1>
-            <p className="lead">Tap one face for each line. {answeredRatings} of {RATING_DIMENSIONS.length} done.</p>
-            {RATING_DIMENSIONS.map((d) => (
-              <RatingRow key={d.key} question={d.question} ar={d.ar} value={sub.ratings?.[d.key]} onChange={(v) => change({ ratings: { ...sub.ratings, [d.key]: v } })} />
-            ))}
+            <h1>Rate each department <span className="ar-title" lang="ar">قيّم كل إدارة</span></h1>
+            <p className="lead">For each department: your score from 1 to 10, its biggest strengths, its biggest weaknesses and your ideas. Skip any department you don’t deal with.</p>
+            <DeptReviewer depts={answers.depts ?? {}} myDept={answers.my_dept} index={deptIndex} onIndex={setDeptIndex} onChange={setDept} />
           </>
         )}
 
         {step === 2 && (
           <>
-            <h1>What do you do? <span className="ar-title" lang="ar">بتعمل إيه؟</span></h1>
-            <p className="lead">Tap everything that is part of your work. Add your own if it’s missing.</p>
-            <Chips options={RESPONSIBILITY_OPTIONS} selected={sub.responsibility_tags} onChange={(v) => change({ responsibility_tags: v })} allowCustom translate={ARABIC} />
-            <label>
-              Anything in your job that is not clear, or done by two people? <span className="muted">(optional)</span>
-              <span className="ar-line" lang="ar" dir="rtl">في حاجة في شغلك مش واضحة أو بيعملها اتنين؟ (اختياري)</span>
-              <textarea rows={3} dir="auto" placeholder="e.g. Sales and Finance both follow up the same invoice…" value={sub.responsibilities} onChange={(e) => change({ responsibilities: e.target.value })} />
-            </label>
+            <h1>The best at TotalCare <span className="ar-title" lang="ar">الأحسن في TotalCare</span></h1>
+            <p className="lead">Your top 3 in each. Start typing to pick a name. You can’t choose yourself.</p>
+            <TopThreeNames title="Best manager" ar="أحسن مدير" value={answers.best_managers ?? []} names={names} onChange={(v) => setAnswers({ best_managers: v })} />
+            <TopThreeDepartments value={answers.best_departments ?? []} onChange={(v) => setAnswers({ best_departments: v })} />
+            <TopThreeNames title="Best employee" ar="أحسن موظف" icon={<Users size={18} />} value={answers.best_employees ?? []} names={names.filter((n) => n !== profile?.full_name)} onChange={(v) => setAnswers({ best_employees: v })} />
           </>
         )}
 
         {step === 3 && (
           <>
-            <h1>What slows you down? <span className="ar-title" lang="ar">إيه اللي معطّلك؟</span></h1>
-            <p className="lead">Pick up to {MAX_CHALLENGES}. Tap the <strong>biggest problem first</strong> — the number shows the order.</p>
-            <Chips options={CHALLENGE_OPTIONS} selected={sub.challenge_tags} onChange={(v) => change({ challenge_tags: v })} max={MAX_CHALLENGES} ranked allowCustom translate={ARABIC} />
-            <label>
-              Give one real example <span className="muted">(optional)</span>
-              <span className="ar-line" lang="ar" dir="rtl">اكتب مثال حقيقي (اختياري)</span>
-              <textarea rows={3} dir="auto" placeholder="e.g. A hospital order waited 2 weeks for 4 signatures…" value={sub.challenges} onChange={(e) => change({ challenges: e.target.value })} />
-            </label>
+            <h1>The company <span className="ar-title" lang="ar">الشركة</span></h1>
+            <p className="lead">Short answers are best. Tap a suggestion if it says what you mean — it helps us count similar answers together.</p>
+            <NumberedList title="Biggest company problems" ar="أكبر مشاكل الشركة" count={3} value={answers.company_problems ?? []} onChange={(v) => setAnswers({ company_problems: v })} suggestions={PROBLEM_SUGGESTIONS} placeholder="e.g. Approvals take too long" />
+            <NumberedList title="Best company strengths" ar="أحسن مميزات الشركة" count={3} value={answers.company_strengths ?? []} onChange={(v) => setAnswers({ company_strengths: v })} suggestions={STRENGTH_SUGGESTIONS} placeholder="e.g. Hospitals trust us" />
           </>
         )}
 
         {step === 4 && (
           <>
-            <h1>Build your org chart <span className="ar-title" lang="ar">ابنِ الهيكل التنظيمي</span></h1>
-            <p className="lead">Drag roles into the right department and level. Tap a box to change it. Optional — you can skip this step.</p>
-            <OrgBoardEditor key={sub.id} value={board} onChange={(structure) => change({ structure })} />
-          </>
-        )}
-
-        {step === 5 && (
-          <>
-            <h1>Your ideas <span className="ar-title" lang="ar">أفكارك</span></h1>
-            <p className="lead">Short and clear is best. Arabic or English are both fine.</p>
-            {[0, 1, 2].map((i) => (
-              <label key={i}>
-                Idea {i + 1}{i > 0 && <span className="muted"> (optional)</span>}
-                <input
-                  dir="auto"
-                  placeholder={['e.g. One person signs discounts up to 10%', 'e.g. Use Odoo for all orders, not WhatsApp', 'e.g. A loan device for every big hospital'][i]}
-                  value={sub.ideas?.[i] ?? ''}
-                  onChange={(e) => {
-                    const ideas = [...(sub.ideas ?? []), '', '', ''].slice(0, 3)
-                    ideas[i] = e.target.value
-                    change({ ideas })
-                  }}
-                />
-              </label>
-            ))}
-            <label>
-              One thing to change tomorrow
-              <span className="ar-line" lang="ar" dir="rtl">حاجة واحدة تتغير من بكرة</span>
-              <input dir="auto" value={sub.quick_win} onChange={(e) => change({ quick_win: e.target.value })} />
-            </label>
-            <p className="field-label">Would you tell a friend to work at TotalCare? <span className="ar-inline" lang="ar">تنصح صاحبك يشتغل في TotalCare؟</span></p>
-            <div className="enps">
-              {Array.from({ length: 11 }, (_, n) => (
-                <button key={n} type="button" className={`enps-btn ${sub.enps === n ? 'on' : ''} ${n <= 6 ? 'low' : n <= 8 ? 'mid' : 'high'}`} onClick={() => change({ enps: sub.enps === n ? null : n })}>{n}</button>
-              ))}
-            </div>
-            <div className="enps-legend muted small"><span>0 = No · لا</span><span>10 = Yes, for sure · أكيد</span></div>
-            <label>
-              Anything else? <span className="muted">(optional)</span>
-              <span className="ar-line" lang="ar" dir="rtl">أي حاجة تانية؟ (اختياري)</span>
-              <textarea rows={3} dir="auto" value={sub.suggestions} onChange={(e) => change({ suggestions: e.target.value })} />
-            </label>
+            <h1>Ideas to develop TotalCare <span className="ar-title" lang="ar">أفكار ممكن تطوّر الشركة</span></h1>
+            <RewardBanner />
+            <NumberedList title="Your ideas" ar="أفكارك" count={5} value={answers.company_ideas ?? []} onChange={(v) => setAnswers({ company_ideas: v })} placeholder="e.g. One approval matrix: max 2 signatures for any order" />
           </>
         )}
 
         {step === LAST && (
           <>
-            <h1>{locked ? 'Your submission' : 'Check and send'} <span className="ar-title" lang="ar">{locked ? 'مشاركتك' : 'راجع وابعت'}</span></h1>
-            {!locked && <p className="lead">Check your answers. Tap “Edit” to change anything. When you press Send, everything goes to the admin.</p>}
-            <SubmissionSummary sub={sub} departmentName={sub.department_id ? deptName.get(sub.department_id) : undefined} onEdit={locked ? undefined : go} />
+            <h1>{locked ? 'Your answers' : 'Check and send'} <span className="ar-title" lang="ar">{locked ? 'إجاباتك' : 'راجع وابعت'}</span></h1>
+            {!locked && hardOpen.length > 0 && (
+              <div className="card check-card hard">
+                <h3><AlertTriangle size={18} /> Please fix · لازم تتعدل</h3>
+                {hardOpen.map((i) => (
+                  <div key={i.key} className="check-row">
+                    <span className="grow">{i.message}<br /><span className="muted small" lang="ar">{i.ar}</span></span>
+                    <button type="button" className="secondary small-btn" onClick={() => go(i.step)}>Fix</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!locked && softOpen.length > 0 && (
+              <div className="card check-card">
+                <h3><AlertTriangle size={18} /> Quick double-check · تأكيد سريع</h3>
+                <p className="muted small">These answers don’t seem to fit together. Change them, or tell us they’re right.</p>
+                {softOpen.map((i) => (
+                  <div key={i.key} className="check-row">
+                    <span className="grow">{i.message}<br /><span className="muted small" lang="ar">{i.ar}</span></span>
+                    <button type="button" className="secondary small-btn" onClick={() => { if (i.dept) setDeptIndex(Math.max(0, SURVEY_DEPARTMENTS.findIndex((d) => d.key === i.dept))); go(i.step) }}>Change</button>
+                    <button type="button" className="link" onClick={() => setAnswers({ confirmed: [...(answers.confirmed ?? []), i.key] })}>It’s right · صح</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!locked && quality.straightLined && <p className="notice small">You gave every department the same score. If that’s how you really see them, fine — otherwise take another look.</p>}
+            {!locked && (
+              <div className="anon-choice">
+                <p className="field-label">How do you want to send it? <span className="ar-inline" lang="ar">عايز تبعتها إزاي؟</span></p>
+                <button type="button" className={`card choice ${anonymous === false ? 'on' : ''}`} onClick={() => setAnonymous(false)}>
+                  <UserRound size={22} />
+                  <span><b>With my name</b> · باسمي<br /><span className="muted small">Only the project admin sees your name and can follow up — and reward your idea directly. Management sees summaries without names.</span></span>
+                </button>
+                <button type="button" className={`card choice ${anonymous === true ? 'on' : ''}`} onClick={() => setAnonymous(true)}>
+                  <EyeOff size={22} />
+                  <span><b>Anonymously</b> · من غير اسم<br /><span className="muted small">Stored with no name and only today’s date: nobody, including the admin, can link the answers to you. You get a private code to claim the reward if your idea wins.</span></span>
+                </button>
+              </div>
+            )}
+            <SurveySummary answers={answers} level={sub.role_level} onEdit={locked ? undefined : go} />
           </>
         )}
       </div>
@@ -364,9 +419,9 @@ export default function VisionWizard() {
           <button type="button" className="secondary" onClick={() => go(step - 1)} disabled={step === 0}><ArrowLeft size={16} /> Back</button>
           <button type="button" className="link danger" onClick={remove}><Trash2 size={14} /> Delete draft</button>
           {step < LAST ? (
-            <button type="button" onClick={() => go(step + 1)}>{step === 4 && board.roles.length === 0 ? 'Skip' : 'Next'} <ArrowRight size={16} /></button>
+            <button type="button" onClick={() => go(step + 1)}>Next <ArrowRight size={16} /></button>
           ) : (
-            <button type="button" className="primary-lg" onClick={submit}><Send size={16} /> Send to admin · ابعت</button>
+            <button type="button" className="primary-lg" onClick={submit} disabled={anonymous === null || hardOpen.length > 0}><Send size={16} /> {anonymous ? 'Send anonymously · ابعت من غير اسم' : 'Send · ابعت'}</button>
           )}
         </div>
       )}

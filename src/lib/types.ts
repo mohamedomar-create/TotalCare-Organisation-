@@ -32,7 +32,8 @@ import type { OrgBoard } from './orgBoard'
 
 export interface Submission {
   id: string
-  author_id: string
+  /** null when the person answered anonymously */
+  author_id: string | null
   department_id: string | null
   role_level: string
   ratings: Record<string, number>
@@ -50,6 +51,9 @@ export interface Submission {
   created_at: string
   updated_at: string
   submitted_at: string | null
+  answers?: import('./survey').SurveyAnswers
+  quality?: { score?: number; level?: 'high' | 'medium' | 'low'; contradictions?: number; straight_lined?: boolean; rushed?: boolean; enps_mismatch?: boolean; minutes?: number | null }
+  anonymous?: boolean
 }
 
 export type ReviewStatus = 'new' | 'reviewed' | 'actioned'

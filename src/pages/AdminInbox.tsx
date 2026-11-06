@@ -27,7 +27,7 @@ export default function AdminInbox() {
     .filter((s) => status !== 'new' || (reviews.get(s.id)?.status ?? 'new') === 'new')
     .filter((s) => {
       if (!q) return true
-      const p = who.get(s.author_id)
+      const p = s.author_id ? who.get(s.author_id) : undefined
       return [p?.full_name, p?.email, s.challenges, s.suggestions, s.quick_win, ...s.challenge_tags, ...(s.ideas ?? [])]
         .some((f) => f?.toLowerCase().includes(q))
     })
@@ -79,7 +79,7 @@ export default function AdminInbox() {
       {!loading && tab === 'submissions' && (
         <ul className="list">
           {subRows.map((s) => {
-            const p = who.get(s.author_id)
+            const p = s.author_id ? who.get(s.author_id) : undefined
             const review = reviews.get(s.id)?.status ?? 'new'
             const isNew = s.status === 'submitted' && review === 'new'
             return (
@@ -87,10 +87,10 @@ export default function AdminInbox() {
                 <Link to={`/admin/submissions/${s.id}`} className={`card list-row ${isNew ? 'unread' : ''}`}>
                   {isNew && <span className="dot" aria-label="Unread" />}
                   <div className="grow">
-                    <strong>{p?.full_name || p?.email || 'Unknown'}</strong>
+                    <strong>{s.anonymous ? '🔒 Anonymous colleague' : p?.full_name || p?.email || 'Unknown'}</strong>
                     <span className="muted small"> · {(s.department_id && deptName.get(s.department_id)) || 'Department not given'}{s.role_level && ` · ${s.role_level}`}</span>
                     <div className="muted small clamp">
-                      {s.challenge_tags.slice(0, 3).join(' · ') || s.quick_win || 'No challenges picked'}
+                      {s.challenge_tags.slice(0, 3).join(' · ') || s.quick_win || 'No challenges picked'}{s.quality?.level === 'low' && ' · ⚠️ inconsistent answers'}
                     </div>
                   </div>
                   <span className="muted small nowrap">{new Date(s.submitted_at ?? s.updated_at).toLocaleDateString()}</span>

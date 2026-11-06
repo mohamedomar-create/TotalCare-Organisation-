@@ -1,14 +1,14 @@
 export default function PrivacyNotice() {
   return (
     <div className="notice">
-      <strong>Who sees your answers?</strong>
+      <strong>Who sees your answers? · مين بيشوف إجاباتك؟</strong>
       <ul>
-        <li>Only the <strong>project admin</strong> sees your name.</li>
-        <li>Management sees a <strong>summary without names</strong>. Small teams are grouped so nobody can be identified.</li>
-        <li>You can change a draft any time. After you send it, it is locked.</li>
+        <li>At the end you choose: <strong>with your name</strong> (only the project admin sees it) or <strong>anonymously</strong> (stored with no name — nobody can link it to you).</li>
+        <li>Management sees a <strong>summary without names</strong>. Teams with fewer than 3 answers are grouped so nobody can be identified.</li>
+        <li>Your draft saves automatically. After you send it, it is locked.</li>
       </ul>
       <p className="ar-line" lang="ar" dir="rtl">
-        اسمك يظهر لمسؤول المشروع فقط. الإدارة تشوف ملخص من غير أسماء. تقدر تعدّل المسودة في أي وقت، وبعد الإرسال مش هتتعدّل.
+        في الآخر بتختار: باسمك (مسؤول المشروع بس اللي يشوفه) أو من غير اسم (محدش يقدر يعرف إنها إجابتك). الإدارة بتشوف ملخص من غير أسماء.
       </p>
     </div>
   )

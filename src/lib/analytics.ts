@@ -1,9 +1,21 @@
-import { RATING_DIMENSIONS } from './survey'
+import { CHECK_ITEMS, RATING_DIMENSIONS } from './survey'
 import type { Submission } from './types'
+
+/**
+ * A theme's score for one person: the theme question, averaged with its reversed check question
+ * (if they answered it), so both ways of asking count.
+ */
+export function themeScore(ratings: Record<string, number> | undefined, key: string): number | null {
+  const main = ratings?.[key]
+  const check = CHECK_ITEMS.find((c) => c.pairOf === key)
+  const rev = check ? ratings?.[check.key] : undefined
+  const values = [main, typeof rev === 'number' ? 6 - rev : undefined].filter((v): v is number => typeof v === 'number')
+  return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null
+}
 
 export function ratingAverages(subs: Submission[]) {
   return RATING_DIMENSIONS.map((d) => {
-    const values = subs.map((s) => s.ratings?.[d.key]).filter((v): v is number => typeof v === 'number')
+    const values = subs.map((s) => themeScore(s.ratings, d.key)).filter((v): v is number => v !== null)
     const average = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0
     return { key: d.key, label: d.label, average: Math.round(average * 10) / 10, count: values.length }
   })
@@ -26,7 +38,7 @@ export function enps(subs: Submission[]) {
 
 // Average of all answered ratings, 1–5 (null when nobody answered).
 export function overallAverage(subs: Submission[]) {
-  const values = subs.flatMap((s) => Object.values(s.ratings ?? {})).filter((v): v is number => typeof v === 'number')
+  const values = subs.flatMap((s) => RATING_DIMENSIONS.map((d) => themeScore(s.ratings, d.key))).filter((v): v is number => v !== null)
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null
 }
 

@@ -11,7 +11,9 @@ export default function MyVision() {
   const { session } = useAuth()
   const navigate = useNavigate()
   const { items, loading, error } = useMySubmissions(session?.user.id)
-  const { canStart } = useAllowance(session?.user.id)
+  const { allowance, canStart } = useAllowance(session?.user.id)
+  // An anonymous answer leaves no row this person can see, only the count of surveys they used.
+  const answeredAnonymously = Boolean(allowance && allowance.used > items.length)
   const [createError, setCreateError] = useState<string | null>(null)
 
   async function create() {
@@ -25,9 +27,12 @@ export default function MyVision() {
   return (
     <div className="page">
       <div className="row between">
-        <h1>My submissions</h1>
-        {canStart && <button onClick={create}><Plus size={16} /> New submission</button>}
+        <h1>My survey <span className="ar-title" lang="ar">الاستبيان بتاعي</span></h1>
+        {canStart && <button onClick={create}><Plus size={16} /> Start the survey</button>}
       </div>
+      {answeredAnonymously && (
+        <p className="notice">🔒 You sent your answers anonymously. They aren’t shown here because nothing links them to you — that’s the point. Thank you!</p>
+      )}
       {!canStart && items.some((s) => s.status === 'submitted') && (
         <p className="notice">✅ Thank you — your view has been sent. The admin will open a new round when it’s time to share again.</p>
       )}
@@ -35,10 +40,10 @@ export default function MyVision() {
       {(error || createError) && <p className="error">{error || createError}</p>}
       {loading ? (
         <p className="muted">Loading…</p>
-      ) : items.length === 0 ? (
+      ) : items.length === 0 && !answeredAnonymously ? (
         <div className="card empty-state">
-          <p>You haven’t started yet.</p>
-          <button onClick={create}>Start my submission</button>
+          <p>You haven’t started yet. It takes about 8 minutes. <span lang="ar">لسه مبدأتش. حوالي ٨ دقايق.</span></p>
+          <button onClick={create}>Start the survey</button>
         </div>
       ) : (
         <ul className="list">
@@ -49,7 +54,7 @@ export default function MyVision() {
                 <Link to={`/vision/${s.id}`} className="card list-row">
                   {s.status === 'submitted' ? <CheckCircle2 className="success-icon" size={22} /> : <CircleDashed size={22} className="muted" />}
                   <div className="grow">
-                    <strong>{s.status === 'submitted' ? 'Submitted to admin' : `Draft — step ${step + 1} of ${WIZARD_STEPS.length}`}</strong>
+                    <strong>{s.status === 'submitted' ? 'Sent ✓' : `Draft — step ${step + 1} of ${WIZARD_STEPS.length}`}</strong>
                     <div className="muted small">
                       {s.status === 'submitted' && s.submitted_at
                         ? `Sent ${new Date(s.submitted_at).toLocaleString()}`

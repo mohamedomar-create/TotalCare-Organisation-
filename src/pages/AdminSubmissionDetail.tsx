@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 import { useDirectory } from '../lib/useDirectory'
 import type { Profile, ReviewStatus, Submission, SubmissionReview } from '../lib/types'
 import SubmissionSummary from '../components/SubmissionSummary'
+import SurveySummary from '../components/survey/SurveySummary'
+import type { SurveyAnswers } from '../lib/survey'
 
 export default function AdminSubmissionDetail() {
   const { id } = useParams()
@@ -22,7 +24,7 @@ export default function AdminSubmissionDetail() {
       const s = data as Submission
       setSub(s)
       const [p, r] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', s.author_id).single(),
+        s.author_id ? supabase.from('profiles').select('*').eq('id', s.author_id).single() : Promise.resolve({ data: null }),
         supabase.from('submission_reviews').select('*').eq('submission_id', s.id).maybeSingle(),
       ])
       setAuthor(p.data as Profile | null)
@@ -55,11 +57,14 @@ export default function AdminSubmissionDetail() {
       <Link to="/admin/inbox" className="link"><ArrowLeft size={15} /> Inbox</Link>
       <div className="detail-layout">
         <div>
-          <h1>{author?.full_name || author?.email || 'Submission'}</h1>
+          <h1>{sub?.anonymous ? '🔒 Anonymous colleague' : author?.full_name || author?.email || 'Submission'}</h1>
           <p className="muted">
             {sub.status === 'submitted' ? `Submitted ${sub.submitted_at && new Date(sub.submitted_at).toLocaleString()}` : `Draft — last saved ${new Date(sub.updated_at).toLocaleString()}`}
           </p>
-          <SubmissionSummary sub={sub} departmentName={deptName} />
+          {sub.quality?.score !== undefined && <p className="muted small">Answer quality: <b>{sub.quality.score}/100</b>{sub.quality.straight_lined ? ' · same score everywhere' : ''}{sub.quality.rushed ? ` · answered in ${sub.quality.minutes} min` : ''}{sub.quality.contradictions ? ` · ${sub.quality.contradictions} check(s) raised` : ''}</p>}
+          {(sub.answers as SurveyAnswers | undefined)?.v === 2
+            ? <SurveySummary answers={sub.answers as SurveyAnswers} level={sub.role_level} />
+            : <SubmissionSummary sub={sub} departmentName={deptName} />}
         </div>
         <aside className="card detail-side">
           <h3>Follow-up</h3>

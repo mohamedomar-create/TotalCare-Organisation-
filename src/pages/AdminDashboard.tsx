@@ -27,6 +27,7 @@ import {
   overallAverage,
   ratingAverages,
   tagCounts,
+  themeScore,
   weeklyCounts,
   type Band,
 } from '../lib/analytics'
@@ -134,7 +135,7 @@ export default function AdminDashboard() {
   const matrix = sectors.map((d) => {
     const rows = submitted.filter((s) => s.department_id === d.id)
     const cells = RATING_DIMENSIONS.map((dim) => {
-      const values = rows.map((s) => s.ratings?.[dim.key]).filter((v): v is number => typeof v === 'number')
+      const values = rows.map((s) => themeScore(s.ratings, dim.key)).filter((v): v is number => v !== null)
       return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null
     })
     return { dept: d, n: rows.length, avg: overallAverage(rows), cells, staff: profiles.filter((p) => p.department_id === d.id).length }

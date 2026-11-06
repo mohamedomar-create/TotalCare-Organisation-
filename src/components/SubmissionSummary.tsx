@@ -1,5 +1,5 @@
 import { Pencil } from 'lucide-react'
-import { ARABIC, RATING_DIMENSIONS, RATING_SCALE } from '../lib/survey'
+import { ARABIC, RATING_SCALE, screenItems, type SurveyAnswers } from '../lib/survey'
 import { asBoard } from '../lib/orgBoard'
 import type { Submission } from '../lib/types'
 import { OrgBoardView } from './board/OrgBoardEditor'
@@ -42,51 +42,57 @@ function Tag({ text }: { text: string }) {
 export default function SubmissionSummary({ sub, departmentName, onEdit }: Props) {
   const ideas = (sub.ideas ?? []).filter((i) => i.trim())
   const board = asBoard(sub.structure)
+  const answers = (sub.answers ?? {}) as SurveyAnswers
   return (
     <div className="summary">
       <Section title="About you · عنك" step={0} onEdit={onEdit}>
         <p>
           <strong>Department:</strong> {departmentName || 'Prefer not to say'} · <strong>Level:</strong> {sub.role_level || 'Not given'}
+          {answers.tenure && <> · <strong>At TotalCare:</strong> {answers.tenure}</>}
+          {answers.location && <> · <strong>Based in:</strong> {answers.location}</>}
         </p>
       </Section>
 
-      <Section title="Quick check · تقييم سريع" step={1} onEdit={onEdit}>
-        <div className="pulse-summary">
-          {RATING_DIMENSIONS.map((d) => {
-            const v = sub.ratings?.[d.key]
-            const s = RATING_SCALE.find((x) => x.value === v)
-            return (
-              <div key={d.key} className="pulse-item">
-                <span>{d.question}</span>
-                <span className="pulse-value">{s ? `${s.emoji} ${s.label}` : '—'}</span>
-              </div>
-            )
-          })}
-        </div>
-      </Section>
+      {(['you', 'work'] as const).map((group, gi) => (
+        <Section key={group} title={group === 'you' ? 'You & your team · إنت وفريقك' : 'How work flows · الشغل ماشي إزاي'} step={1 + gi} onEdit={onEdit}>
+          <div className="pulse-summary">
+            {screenItems(group).map((d) => {
+              const s = RATING_SCALE.find((x) => x.value === sub.ratings?.[d.key])
+              return (
+                <div key={d.key} className="pulse-item">
+                  <span>{d.question}</span>
+                  <span className="pulse-value">{s ? `${s.emoji} ${s.label}` : '—'}</span>
+                </div>
+              )
+            })}
+          </div>
+        </Section>
+      ))}
 
-      <Section title="Your work · شغلك" step={2} onEdit={onEdit}>
+      <Section title="Your work · شغلك" step={3} onEdit={onEdit}>
         {sub.responsibility_tags.length ? <div className="chips static">{sub.responsibility_tags.map((t) => <Tag key={t} text={t} />)}</div> : empty}
         {sub.responsibilities && <p className="pre quote" dir="auto">{sub.responsibilities}</p>}
       </Section>
 
-      <Section title="Problems · المشاكل" step={3} onEdit={onEdit}>
+      <Section title="Problems · المشاكل" step={4} onEdit={onEdit}>
         {sub.challenge_tags.length ? (
           <ol className="ranked">{sub.challenge_tags.map((t) => <li key={t}>{t}{ARABIC[t] && <span className="muted small" lang="ar"> · {ARABIC[t]}</span>}</li>)}</ol>
         ) : empty}
         {sub.challenges && <p className="pre quote" dir="auto">{sub.challenges}</p>}
       </Section>
 
-      <Section title="Org chart · الهيكل التنظيمي" step={4} onEdit={onEdit}>
+      <Section title="Org chart · الهيكل التنظيمي (optional)" step={5} onEdit={onEdit}>
         {board.roles.length ? <OrgBoardView board={board} /> : empty}
       </Section>
 
-      <Section title="Ideas · أفكارك" step={5} onEdit={onEdit}>
+      <Section title="Ideas · أفكارك" step={6} onEdit={onEdit}>
         {ideas.length ? <ol>{ideas.map((i, n) => <li key={n} dir="auto">{i}</li>)}</ol> : empty}
         {sub.quick_win && <p dir="auto"><strong>Change tomorrow:</strong> {sub.quick_win}</p>}
         {sub.enps !== null && sub.enps !== undefined && (
           <p><strong>Would recommend TotalCare as a workplace:</strong> {sub.enps} / 10</p>
         )}
+        {answers.stay && <p><strong>In a year I see myself:</strong> {answers.stay}</p>}
+        {!!answers.volunteer?.length && <p><strong>I’d help improve:</strong> {answers.volunteer.join(', ')}</p>}
         {sub.suggestions && <p className="pre quote" dir="auto">{sub.suggestions}</p>}
       </Section>
     </div>
