@@ -80,7 +80,7 @@ Staff are told this in the survey. The rules are enforced by Postgres row-level 
 ## Setup
 
 1. Create a Supabase project at https://supabase.com.
-2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives; `0007_invitations.sql` adds invitations; `0008_small_team_privacy.sql` keeps anonymous answers safe in a small team; `0009_roles_super_admin.sql` adds the super admin and survey admins and one-tap joining). Optionally run `supabase/seed.sql` for example data.
+2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives; `0007_invitations.sql` adds invitations; `0008_small_team_privacy.sql` keeps anonymous answers safe in a small team; `0009_roles_super_admin.sql` adds the super admin and survey admins and one-tap joining; `0010_hardening.sql` applies two small fixes from the Supabase security advisor). Files run in the SQL editor don’t appear under Database → Migrations; that list only shows migrations applied through the CLI or API. Optionally run `supabase/seed.sql` for example data.
 3. Under **Authentication → URL configuration**, set the Site URL to where the app will be hosted (for local development, `http://localhost:5173`).
 4. Copy `.env.example` to `.env` and fill in the project URL and anon key from **Project Settings → API**.
 5. Install and run:
