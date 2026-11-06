@@ -63,11 +63,13 @@ describe('results', () => {
     const r = departmentResults(subs)
     const sales = r.find((d) => d.key === 'sales')!
     expect(sales.average).toBe(7.5) // 6 and 9 from others; the 10 from Sales itself is separate
-    expect(sales.selfAverage).toBe(10)
+    expect(sales.selfAverage).toBeNull() // one self-rating would show one person's score
+    expect(sales.selfN).toBe(1)
     expect(sales.nps).toBe(0) // one 9 (promoter), one 6 (detractor)
     const mk = r.find((d) => d.key === 'marketing')!
     expect(mk.average).toBe(6)
     expect(mk.weaknesses[0]).toMatchObject({ text: 'Late brochures', fromDept: 'Sales', self: false })
+    expect(mk.strengths[0]).toMatchObject({ text: 'Good events', fromDept: 'anonymous colleague' })
     expect(r.find((d) => d.key === 'accounting')!.skips).toBe(1)
   })
 
@@ -138,7 +140,7 @@ describe('dashboard analytics', () => {
     expect(a.flags).toMatchObject({ straightLined: 1, rushed: 1 })
     expect(a.flagged[0].id).toBe('3')
     expect(a.ownDeptVotes).toBe(50)
-    expect(a.selfBias.find((b) => b.key === 'maintenance')).toMatchObject({ self: 10, others: 9 })
+    expect(a.selfBias).toEqual([]) // only one person rated their own team: never shown
     expect(a.completeness.find((c) => c.label.startsWith('Said'))!.pct).toBe(100)
     expect(a.skips[0]).toMatchObject({ key: 'hr_legal', skips: 1 })
   })

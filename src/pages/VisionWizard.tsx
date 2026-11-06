@@ -405,7 +405,7 @@ export default function VisionWizard() {
                 </button>
                 <button type="button" className={`card choice ${anonymous === true ? 'on' : ''}`} onClick={() => setAnonymous(true)}>
                   <EyeOff size={22} />
-                  <span><b>Anonymously</b> · من غير اسم<br /><span className="muted small">Stored with no name and only today’s date: nobody, including the admin, can link the answers to you. You get a private code to claim the reward if your idea wins.</span></span>
+                  <span><b>Anonymously</b> · من غير اسم<br /><span className="muted small">Stored with no name and only today’s date: nobody, including the admin, can link the answers to you. Your level, years at TotalCare and location are removed too, so you can’t be recognised in a small team — only your department is kept. You get a private code to claim the reward if your idea wins.</span></span>
                 </button>
               </div>
             )}

@@ -63,7 +63,7 @@ export function departmentResults(subs: Submission[]): DeptResult[] {
         ;(isSelf ? self : others).push(r.score)
         if (!isSelf) distribution[r.score - 1]++
       }
-      const c = (text?: string) => (text?.trim() ? { text: text.trim(), fromDept: fromLabel(s), self: isSelf, submission: s.id } : null)
+      const c = (text?: string) => (text?.trim() ? { text: text.trim(), fromDept: s.anonymous ? 'anonymous colleague' : fromLabel(s), self: isSelf, submission: s.id } : null)
       const st = c(r.strengths)
       const wk = c(r.weaknesses)
       const id = c(r.ideas)
@@ -77,7 +77,8 @@ export function departmentResults(subs: Submission[]): DeptResult[] {
       ...d,
       average: avg(others),
       n: others.length,
-      selfAverage: avg(self),
+      // A team's rating of itself is only shown when 3+ of its members answered, or one person's score shows.
+      selfAverage: self.length >= MIN_GROUP ? avg(self) : null,
       selfN: self.length,
       nps: others.length ? Math.round(((promoters - detractors) / others.length) * 100) : null,
       distribution,
@@ -176,8 +177,8 @@ export function allIdeas(subs: Submission[]): IdeaRow[] {
   const out: IdeaRow[] = []
   for (const s of subs) {
     const a = ans(s)
-    for (const t of a.company_ideas ?? []) if (t?.trim()) out.push({ text: t.trim(), source: 'Company', fromDept: fromLabel(s), submission: s.id, anonymous: Boolean(s.anonymous), rewardCode: a.reward_code })
-    for (const [k, r] of Object.entries(a.depts ?? {})) if (r.ideas?.trim()) out.push({ text: r.ideas.trim(), source: deptByKey(k)?.name ?? k, fromDept: fromLabel(s), submission: s.id, anonymous: Boolean(s.anonymous), rewardCode: a.reward_code })
+    for (const t of a.company_ideas ?? []) if (t?.trim()) out.push({ text: t.trim(), source: 'Company', fromDept: s.anonymous ? 'anonymous colleague' : fromLabel(s), submission: s.id, anonymous: Boolean(s.anonymous), rewardCode: a.reward_code })
+    for (const [k, r] of Object.entries(a.depts ?? {})) if (r.ideas?.trim()) out.push({ text: r.ideas.trim(), source: deptByKey(k)?.name ?? k, fromDept: s.anonymous ? 'anonymous colleague' : fromLabel(s), submission: s.id, anonymous: Boolean(s.anonymous), rewardCode: a.reward_code })
   }
   return out
 }
@@ -377,7 +378,7 @@ export function audit(subs: Submission[]): Audit {
   ]
   const depts = departmentResults(subs)
   const selfBias = depts
-    .filter((d) => d.selfAverage !== null && d.average !== null && d.selfN >= 1)
+    .filter((d) => d.selfAverage !== null && d.average !== null)
     .map((d) => ({ key: d.key, name: d.name, self: d.selfAverage!, others: d.average!, gap: Math.round((d.selfAverage! - d.average!) * 10) / 10 }))
     .sort((a, b) => b.gap - a.gap)
   const skips = depts.map((d) => ({ key: d.key, name: d.name, skips: d.skips, pct: pct(d.skips) })).sort((a, b) => b.skips - a.skips)

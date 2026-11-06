@@ -84,7 +84,7 @@ function DeptCard({ d, onPlan }: { d: DeptResult; onPlan: (d: DeptResult) => voi
       </div>
       <p className="muted small">
         {d.n} rating{d.n === 1 ? '' : 's'} from other departments{d.nps !== null && <> · score index <b>{d.nps > 0 ? '+' : ''}{d.nps}</b></>}
-        {d.selfN > 0 && <> · own team rates itself <b>{d.selfAverage}</b></>}
+        {d.selfAverage !== null && <> · own team rates itself <b>{d.selfAverage}</b></>}
         {d.skips > 0 && <> · {d.skips} don’t deal with them</>}
       </p>
       <div className="row">
@@ -274,6 +274,7 @@ export default function AdminResults() {
 
           <section className="card">
             <h2><BarChart3 size={18} /> Department scores <span className="ar-title" lang="ar">تقييم الإدارات</span></h2>
+            {subs.length < 40 && <p className="muted small">With {subs.length} answers, a difference of less than about 1 point between two departments can be chance — look at the comments before ranking them.</p>}
             <div className="rank-bars">
               {depts.map((d, i) => (
                 <div key={d.key} className="rank-bar">
