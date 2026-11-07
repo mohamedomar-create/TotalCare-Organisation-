@@ -105,6 +105,28 @@ export default function App() {
   if (profile && profile.active === false) return <Join />
 
   const name = profile?.full_name || session.user.email || ''
+
+  // Staff see the survey and nothing else: no menu, no other pages.
+  if (role === 'staff') {
+    return (
+      <div className="survey-only">
+        <header className="survey-only-bar">
+          <span className="brand"><span className="logo small">TC</span> TotalCare survey <span lang="ar">· استبيان</span></span>
+          <span className="survey-only-me">
+            <span className="muted small">{name.endsWith('@invite.local') ? '' : name}</span>
+            <button type="button" className="icon-btn" title="Sign out · خروج" aria-label="Sign out" onClick={() => supabase.auth.signOut()}><LogOut size={17} /></button>
+          </span>
+        </header>
+        <main className="content survey-only-main">
+          <Routes>
+            <Route path="/" element={<SurveyHome surveyOnly />} />
+            <Route path="/vision/:id" element={<VisionWizard />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+      </div>
+    )
+  }
   // The submission wizard runs full-screen, like a Typeform, to keep people focused.
   const focus = /^\/vision\/[^/]+$/.test(location.pathname)
 

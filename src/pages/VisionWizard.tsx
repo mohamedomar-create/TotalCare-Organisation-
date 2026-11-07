@@ -210,7 +210,7 @@ export default function VisionWizard() {
     const { error } = await supabase.from('submissions').delete().eq('id', id!)
     if (error) return setSaveError(isNetworkError(error.message) ? 'No connection — try deleting again in a moment.' : error.message)
     clearBackup(backupKey)
-    navigate('/vision')
+    navigate(profile?.role === 'staff' ? '/' : '/vision')
   }
 
   if (error) return <div className="page"><p className="error">{error}</p><button type="button" onClick={() => location.reload()}>Try again</button></div>
@@ -236,7 +236,7 @@ export default function VisionWizard() {
           <CheckCircle2 size={56} className="success-icon" />
           <h1>Thank you! · شكراً</h1>
           {done === 'anonymous' ? (
-            <p>Your answers were sent <b>anonymously</b>. They are stored with no name, so they no longer appear in “My survey” — that’s how we keep them anonymous.</p>
+            <p>Your answers were sent <b>anonymously</b>. They are stored with no name, so they no longer appear under your account — that’s how we keep them anonymous.</p>
           ) : (
             <p>Your answers were sent. Only the project admin can see your name; management sees summaries without names.</p>
           )}
@@ -250,10 +250,10 @@ export default function VisionWizard() {
               <p className="muted small" lang="ar" dir="rtl">لو فكرتك كسبت هنعلن الكود ده. صوّره دلوقتي علشان تستلم مكافأتك.</p>
             </div>
           )}
-          <p className="muted">Results and the initiatives that come out of them will be shared on “You said, we did”.</p>
+          <p className="muted">Results and the initiatives that come out of them will be shared with everyone.</p>
           <div className="row center">
             <Link className="button" to="/">Back to home</Link>
-            <Link className="button secondary" to="/initiatives">You said, we did</Link>
+            {profile?.role !== 'staff' && <Link className="button secondary" to="/initiatives">You said, we did</Link>}
           </div>
         </div>
       </div>
@@ -299,7 +299,7 @@ export default function VisionWizard() {
     <div className="page wizard">
       <div className="wizard-head">
         <div className="row between">
-          <Link to="/vision" className="link"><ArrowLeft size={15} /> My survey</Link>
+          <Link to={profile?.role === 'staff' ? '/' : '/vision'} className="link"><ArrowLeft size={15} /> {profile?.role === 'staff' ? 'Home' : 'My survey'}</Link>
           <span className="muted small save-state">
             {locked ? <><Lock size={13} /> Sent {sub.submitted_at && new Date(sub.submitted_at).toLocaleDateString()}</> : saveState === 'saved' ? <><Check size={13} /> Saved</> : saveState === 'saving' ? 'Saving…' : saveState === 'offline' ? <><WifiOff size={13} /> Offline — kept on this device</> : 'Unsaved changes'}
           </span>
@@ -352,7 +352,7 @@ export default function VisionWizard() {
         {step === 2 && (
           <>
             <h1>The best at TotalCare <span className="ar-title" lang="ar">الأحسن في TotalCare</span></h1>
-            <p className="lead">Your top 3 in each — all three are required. Start typing to pick a name. You can’t choose yourself.</p>
+            <p className="lead">Your top 3 in each — all three are required. Choose names from the list, or “Other” to write one. You can’t choose yourself.</p>
             <TopThreeNames title="Best manager" ar="أحسن مدير" value={answers.best_managers ?? []} names={names} onChange={(v) => setAnswers({ best_managers: v })} />
             <TopThreeDepartments value={answers.best_departments ?? []} onChange={(v) => setAnswers({ best_departments: v })} />
             <TopThreeNames title="Best employee" ar="أحسن موظف" icon={<Users size={18} />} value={answers.best_employees ?? []} names={names.filter((n) => n !== profile?.full_name)} onChange={(v) => setAnswers({ best_employees: v })} />

@@ -227,6 +227,37 @@ const STRENGTHS: Pair[] = [
 export const STRENGTH_SUGGESTIONS = STRENGTHS
 Object.assign(ARABIC, toMap(STRENGTHS))
 
+/** Common answers for each department's boxes, offered in a drop-down; people can still write their own. */
+export const DEPT_STRENGTH_PICKS: Pair[] = [
+  ['Fast response', 'سرعة في الرد'],
+  ['Helpful and cooperative', 'متعاونين وبيساعدوا'],
+  ['Professional and skilled', 'محترفين وعندهم خبرة'],
+  ['Clear communication', 'تواصل واضح'],
+  ['Accurate work', 'شغل دقيق'],
+  ['Good follow-up', 'متابعة كويسة'],
+  ['Respectful with everyone', 'محترمين مع الكل'],
+  ['Keep their promises', 'بيلتزموا بكلامهم'],
+]
+export const DEPT_WEAKNESS_PICKS: Pair[] = [
+  ['Slow to reply', 'بطء في الرد'],
+  ['Delays', 'تأخير'],
+  ['Weak communication with other departments', 'تواصل ضعيف مع الإدارات'],
+  ['Too much paperwork and approvals', 'ورق وتوقيعات كتير'],
+  ['Mistakes in the work', 'أخطاء في الشغل'],
+  ['Not enough staff', 'عدد الناس قليل'],
+  ['No follow-up', 'مفيش متابعة'],
+  ['Hard to reach', 'صعب الوصول ليهم'],
+]
+export const DEPT_IDEA_PICKS: Pair[] = [
+  ['Weekly meeting with the teams they work with', 'اجتماع أسبوعي مع الإدارات اللي بيتعاملوا معاها'],
+  ['Put all requests in one system (Odoo)', 'كل الطلبات على سيستم واحد (أودو)'],
+  ['Clear deadlines for every request', 'مواعيد واضحة لكل طلب'],
+  ['Hire or train more people', 'تعيين أو تدريب ناس أكتر'],
+  ['Fewer signatures and approvals', 'توقيعات وموافقات أقل'],
+  ['One contact person for other departments', 'شخص واحد مسؤول عن التواصل'],
+]
+Object.assign(ARABIC, toMap(DEPT_STRENGTH_PICKS), toMap(DEPT_WEAKNESS_PICKS), toMap(DEPT_IDEA_PICKS))
+
 export const WIZARD_STEPS = [
   { key: 'about', title: 'Department', ar: 'إدارتك', hint: '5 seconds' },
   { key: 'departments', title: 'Departments', ar: 'الإدارات', hint: '8 departments' },

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import type { Profile, Role } from '../lib/types'
 import { ROLE_HELP, ROLE_LABEL, isOwner } from '../lib/roles'
+import AddSurveyAdmin from '../components/AddSurveyAdmin'
 
 export default function AdminUsers() {
   const { profile: me } = useAuth()
@@ -57,7 +58,8 @@ export default function AdminUsers() {
           <div key={r} className={`card role-card role-${r}`}><b>{ROLE_LABEL[r]}</b><p className="muted small">{ROLE_HELP[r]}</p></div>
         ))}
       </div>
-      <p className="notice small">To let someone help send the survey to everyone, set their role to <b>Survey admin</b>. They get the Invitations and Coverage pages only.</p>
+      <AddSurveyAdmin users={users} onDone={() => void load()} />
+      <p className="muted small">Someone already in the list below? You can also change their role there.</p>
       <p className="muted">People appear here after their first sign-in. Invite people without a company e-mail on the <Link to="/admin/invitations">Invitations</Link> page. Everyone can send {perPerson} survey{perPerson === 1 ? '' : 's'} (change this on the dashboard). Use <strong>+1</strong> to let one person send another.</p>
       {error && <p className="error">{error}</p>}
       <table>

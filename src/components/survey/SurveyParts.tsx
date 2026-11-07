@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, Crown, Gift } from 'lucide-react'
-import { ARABIC, SURVEY_DEPARTMENTS, type DeptReview, type Nomination } from '../../lib/survey'
+import { ARABIC, DEPT_IDEA_PICKS, DEPT_STRENGTH_PICKS, DEPT_WEAKNESS_PICKS, SURVEY_DEPARTMENTS, type DeptReview, type Nomination } from '../../lib/survey'
 import { answered, deptGaps } from '../../lib/quality'
 
 /** 1–10 score buttons, red to green. */
@@ -23,6 +23,52 @@ export function deptState(r?: DeptReview) {
 }
 
 const Req = () => <span className="req" aria-label="required">*</span>
+
+
+const OTHER = '__other__'
+
+/**
+ * A drop-down of ready answers with "Other — write it" at the end. Choosing Other shows a text box.
+ * The stored value is always plain text, so results count the same answer the same way.
+ */
+export function PickOrWrite({ value, options, onChange, placeholder, writePlaceholder, label }: {
+  value: string
+  options: [string, string][]
+  onChange: (v: string) => void
+  placeholder: string
+  writePlaceholder?: string
+  label?: string
+}) {
+  const known = options.some(([en]) => en === value)
+  const [writing, setWriting] = useState(Boolean(value) && !known)
+  const showInput = writing || (Boolean(value) && !known)
+  return (
+    <div className="pick-or-write">
+      <select aria-label={label ?? placeholder} value={showInput ? OTHER : value} onChange={(e) => {
+        if (e.target.value === OTHER) { setWriting(true); onChange('') } else { setWriting(false); onChange(e.target.value) }
+      }}>
+        <option value="">{placeholder}</option>
+        {options.map(([en, ar]) => <option key={en} value={en}>{ar ? `${en} · ${ar}` : en}</option>)}
+        <option value={OTHER}>✏️ Other — write it · حاجة تانية، اكتبها</option>
+      </select>
+      {showInput && <input dir="auto" autoFocus={writing && !value} value={value} onChange={(e) => onChange(e.target.value)} placeholder={writePlaceholder ?? 'Write it here · اكتب هنا'} />}
+    </div>
+  )
+}
+
+/** A drop-down that adds a common answer into a text box; the person can still edit the text. */
+function QuickAdd({ options, current, onAdd }: { options: [string, string][]; current?: string; onAdd: (text: string) => void }) {
+  const has = (en: string) => (current ?? '').includes(en)
+  return (
+    <select className="quick-add" value="" aria-label="Add a common answer" onChange={(e) => {
+      const v = e.target.value
+      if (v) onAdd((current ?? '').trim() ? `${(current ?? '').trim()}, ${v}` : v)
+    }}>
+      <option value="">➕ Choose a common answer · اختار إجابة جاهزة</option>
+      {options.map(([en, ar]) => <option key={en} value={en} disabled={has(en)}>{en} · {ar}</option>)}
+    </select>
+  )
+}
 
 /** One department at a time: score, strengths, weaknesses, ideas. */
 export function DeptReviewer({ depts, myDept, index, onIndex, onChange }: {
@@ -68,14 +114,17 @@ export function DeptReviewer({ depts, myDept, index, onIndex, onChange }: {
             {flag && typeof r.score !== 'number' && <p className="field-missing">Choose a score from 1 to 10 · اختار تقييم</p>}
             <label>
               <span>2. Biggest strengths <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٢- أكبر مميزات {d.ar}</span>
+              <QuickAdd options={DEPT_STRENGTH_PICKS} current={r.strengths} onAdd={(t) => set({ strengths: t })} />
               <textarea rows={2} dir="auto" className={miss(r.strengths)} aria-invalid={Boolean(miss(r.strengths))} value={r.strengths ?? ''} onChange={(e) => set({ strengths: e.target.value })} placeholder="e.g. Always answer the phone, fast with hospitals…" />
             </label>
             <label>
               <span>3. Biggest weaknesses <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٣- أكبر عيوب {d.ar}</span>
+              <QuickAdd options={DEPT_WEAKNESS_PICKS} current={r.weaknesses} onAdd={(t) => set({ weaknesses: t })} />
               <textarea rows={2} dir="auto" className={miss(r.weaknesses)} aria-invalid={Boolean(miss(r.weaknesses))} value={r.weaknesses ?? ''} onChange={(e) => set({ weaknesses: e.target.value })} placeholder="e.g. Late replies, papers get lost…" />
             </label>
             <label>
               <span>4. Ideas to improve it <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٤- أفكار لتحسين {d.ar}</span>
+              <QuickAdd options={DEPT_IDEA_PICKS} current={r.ideas} onAdd={(t) => set({ ideas: t })} />
               <textarea rows={2} dir="auto" className={miss(r.ideas)} aria-invalid={Boolean(miss(r.ideas))} value={r.ideas ?? ''} onChange={(e) => set({ ideas: e.target.value })} placeholder="One clear idea is enough" />
             </label>
         </>
@@ -88,7 +137,7 @@ export function DeptReviewer({ depts, myDept, index, onIndex, onChange }: {
   )
 }
 
-/** Three required name boxes with suggestions from the staff list, and an optional reason. */
+/** Three required names, each picked from the staff list (or written), with an optional reason. */
 export function TopThreeNames({ title, ar, value, names, onChange, icon }: {
   title: string
   ar: string
@@ -97,20 +146,21 @@ export function TopThreeNames({ title, ar, value, names, onChange, icon }: {
   onChange: (v: Nomination[]) => void
   icon?: React.ReactNode
 }) {
-  const id = useMemo(() => `names-${title.replace(/\W+/g, '')}`, [title])
   const list = [0, 1, 2].map((i) => value[i] ?? { name: '' })
   const set = (i: number, patch: Partial<Nomination>) => onChange(list.map((n, j) => (j === i ? { ...n, ...patch } : n)))
   return (
     <section className="card top-three">
       <h2>{icon ?? <Crown size={18} />} {title} <Req /> <span className="ar-title" lang="ar">{ar}</span></h2>
-      <datalist id={id}>{names.map((n) => <option key={n} value={n} />)}</datalist>
-      {list.map((n, i) => (
-        <div key={i} className="top-three-row">
-          <span className={`rank-badge m${i + 1}`}>{i + 1}</span>
-          <input list={id} dir="auto" value={n.name} onChange={(e) => set(i, { name: e.target.value })} placeholder={`${i + 1}. Type a name · اكتب الاسم`} aria-required="true" />
-          <input dir="auto" className="reason" value={n.reason ?? ''} onChange={(e) => set(i, { reason: e.target.value })} placeholder="Why? (optional) · ليه؟" disabled={!n.name.trim()} />
-        </div>
-      ))}
+      {list.map((n, i) => {
+        const taken = new Set(list.filter((_, j) => j !== i).map((x) => x.name))
+        return (
+          <div key={i} className="top-three-row">
+            <span className={`rank-badge m${i + 1}`}>{i + 1}</span>
+            <PickOrWrite value={n.name} options={names.filter((x) => !taken.has(x)).map((x) => [x, ''])} onChange={(v) => set(i, { name: v })} placeholder={`${i + 1}. Choose a name · اختار الاسم`} writePlaceholder="Write the full name · اكتب الاسم بالكامل" label={`${title} ${i + 1}`} />
+            <input dir="auto" className="reason" value={n.reason ?? ''} onChange={(e) => set(i, { reason: e.target.value })} placeholder="Why? (optional) · ليه؟" disabled={!n.name.trim()} />
+          </div>
+        )
+      })}
     </section>
   )
 }
@@ -136,7 +186,7 @@ export function TopThreeDepartments({ value, onChange }: { value: string[]; onCh
   )
 }
 
-/** A numbered list of short answers, with tap-to-fill suggestions. */
+/** A numbered list of short answers; with suggestions, each line is a drop-down with "Other — write it". */
 export function NumberedList({ title, ar, count, value, onChange, suggestions, placeholder }: {
   title: string
   ar: string
@@ -148,32 +198,19 @@ export function NumberedList({ title, ar, count, value, onChange, suggestions, p
 }) {
   const list = Array.from({ length: count }, (_, i) => value[i] ?? '')
   const set = (i: number, v: string) => onChange(list.map((x, j) => (j === i ? v : x)))
-  const used = new Set(list.map((x) => x.trim()))
-  const fill = (text: string) => {
-    const i = list.findIndex((x) => !x.trim())
-    if (i >= 0) set(i, text)
-  }
   return (
     <section className="card numbered">
       <h2>{title} <Req /> <span className="ar-title" lang="ar">{ar}</span></h2>
       {list.map((v, i) => (
         <div key={i} className="numbered-row">
           <span className="num-badge">{i + 1}</span>
-          <input dir="auto" value={v} onChange={(e) => set(i, e.target.value)} placeholder={i === 0 ? placeholder : `${i + 1}.`} aria-required="true" />
+          {suggestions ? (
+            <PickOrWrite value={v} options={suggestions.filter(([en]) => en === v || !list.includes(en)).map(([en, a]) => [en, a ?? ARABIC[en] ?? ''])} onChange={(x) => set(i, x)} placeholder={`${i + 1}. Choose · اختار`} writePlaceholder={placeholder} label={`${title} ${i + 1}`} />
+          ) : (
+            <input dir="auto" value={v} onChange={(e) => set(i, e.target.value)} placeholder={i === 0 ? placeholder : `${i + 1}.`} aria-required="true" />
+          )}
         </div>
       ))}
-      {suggestions && (
-        <>
-          <p className="muted small">Tap to add · اضغط للإضافة</p>
-          <div className="chips suggestions">
-            {suggestions.filter(([en]) => !used.has(en)).slice(0, 14).map(([en, arText]) => (
-              <button key={en} type="button" className="chip" disabled={!list.some((x) => !x.trim())} onClick={() => fill(en)}>
-                <span className="chip-text">{en}<span className="chip-ar" lang="ar">{arText ?? ARABIC[en]}</span></span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
     </section>
   )
 }

@@ -13,7 +13,8 @@ function greeting() {
   return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
 }
 
-export default function SurveyHome() {
+/** surveyOnly: for staff, who see the survey and nothing else. */
+export default function SurveyHome({ surveyOnly = false }: { surveyOnly?: boolean }) {
   const { session, profile } = useAuth()
   const navigate = useNavigate()
   const { items } = useMySubmissions(session?.user.id)
@@ -39,7 +40,7 @@ export default function SurveyHome() {
   async function start() {
     try {
       if (draft) return navigate(`/vision/${draft.id}`)
-      if (!canStart) return navigate('/vision')
+      if (!canStart) return surveyOnly ? setError('You have already sent your answers. Thank you! · إجاباتك وصلت، شكراً') : navigate('/vision')
       navigate(`/vision/${await createSubmission()}`)
     } catch (e) {
       setError((e as Error).message)
@@ -56,7 +57,7 @@ export default function SurveyHome() {
             <h1>{greeting()}{firstName ? `, ${firstName}` : ''} 👋</h1>
             <p className="hero-ar" lang="ar">صوتك بيشكّل TotalCare. قول رأيك بصراحة وبأمان.</p>
             <p className="hero-sub">
-              Tell us honestly how work feels and what slows you down. About <b>8 minutes</b>, simple English or Arabic, and you choose whether your name is attached.
+              Tell us honestly how work feels and what slows you down. About <b>10 minutes</b>, simple English or Arabic, and you choose whether your name is attached.
             </p>
             {sent && !draft ? (
               <div className="sent-banner"><CheckCircle2 size={20} /> Thank you — your answers are in. <span lang="ar">شكراً، رأيك وصل.</span></div>
@@ -94,22 +95,22 @@ export default function SurveyHome() {
         <div className="card how">
           <Timer size={22} />
           <strong>Simple and smart</strong>
-          <span className="muted small">Tap a face for each line. If two answers don’t fit together, we’ll ask you once to double-check — so the results are reliable.</span>
-          <span className="muted small" lang="ar" dir="rtl">اضغط على وش لكل سؤال. لو في إجابتين مش راكبين على بعض هنسألك تتأكد.</span>
+          <span className="muted small">Rate each department from 1 to 10 and pick answers from the lists. If two answers don’t fit together, we’ll ask you once to double-check.</span>
+          <span className="muted small" lang="ar" dir="rtl">قيّم كل إدارة من ١ لـ ١٠ واختار من القوائم. لو في إجابتين مش راكبين على بعض هنسألك تتأكد.</span>
         </div>
       </section>
 
       <section className="card journey-card">
         <h2><Sparkles size={18} /> What happens after you answer</h2>
         <ol className="journey-steps">
-          <li><b>1. You answer</b><span>8 minutes, Arabic or English</span><span lang="ar">بتجاوب</span></li>
+          <li><b>1. You answer</b><span>About 10 minutes, Arabic or English</span><span lang="ar">بتجاوب</span></li>
           <li><b>2. Results shared</b><span>A summary for everyone — no names</span><span lang="ar">النتايج بتتنشر</span></li>
           <li><b>3. Initiatives</b><span>Each with an owner, a target and a deadline</span><span lang="ar">مبادرات بمسؤول وهدف وميعاد</span></li>
-          <li><b>4. You see progress</b><span>Updates on “You said, we did”</span><span lang="ar">بتشوف التقدم</span></li>
+          <li><b>4. You see progress</b><span>Updates shared with everyone</span><span lang="ar">بتشوف التقدم</span></li>
         </ol>
       </section>
 
-      <div className="two-col">
+      {!surveyOnly && <div className="two-col">
         <Link to="/speak-up" className="card link-card speak-card">
           <div>
             <strong><Lock size={16} /> Speak up safely · قول رأيك بأمان</strong>
@@ -135,7 +136,7 @@ export default function SurveyHome() {
           </div>
           <ArrowRight size={18} />
         </Link>
-      </div>
+      </div>}
     </div>
   )
 }

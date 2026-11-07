@@ -14,7 +14,7 @@ The survey is the front door. The earlier community features (ideas board, kudos
 4. **The company**: biggest problems (3) and best strengths (3), all required, with tap-to-fill suggestions so similar answers are counted together.
 5. **Ideas**: 5 ideas to develop the company (all required). *The best idea is rewarded and implemented where possible.*
 
-**Every question is required.** Next stays on the step and lists what is missing (with a button to jump to each department), the steps ahead unlock once the earlier ones are complete, and Send is blocked until everything is answered. An answer needs at least one letter or number ("-" or "." don't count).
+**Staff see only the survey**: no menu and no other pages, just the survey and a sign-out button. **Drop-downs:** names come from the staff list, company problems and strengths from ready answers, and every department box has a "choose a common answer" menu; each has "Other — write it". **Every question is required.** Next stays on the step and lists what is missing (with a button to jump to each department), the steps ahead unlock once the earlier ones are complete, and Send is blocked until everything is answered. An answer needs at least one letter or number ("-" or "." don't count).
 
 6. **Check & send**: a summary to review, the answer checks, and the choice to send **with my name** or **anonymously**.
 
@@ -80,7 +80,7 @@ Staff are told this in the survey. The rules are enforced by Postgres row-level 
 ## Setup
 
 1. Create a Supabase project at https://supabase.com.
-2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives; `0007_invitations.sql` adds invitations; `0008_small_team_privacy.sql` keeps anonymous answers safe in a small team; `0009_roles_super_admin.sql` adds the super admin and survey admins and one-tap joining; `0010_hardening.sql` applies two small fixes from the Supabase security advisor). Files run in the SQL editor don’t appear under Database → Migrations; that list only shows migrations applied through the CLI or API. Optionally run `supabase/seed.sql` for example data.
+2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives; `0007_invitations.sql` adds invitations; `0008_small_team_privacy.sql` keeps anonymous answers safe in a small team; `0009_roles_super_admin.sql` adds the super admin and survey admins and one-tap joining; `0010_hardening.sql` applies two small fixes from the Supabase security advisor; `0011_company_email_invitations.sql` lets an invitation give a company e-mail its role, e.g. Survey admin). Files run in the SQL editor don’t appear under Database → Migrations; that list only shows migrations applied through the CLI or API. Optionally run `supabase/seed.sql` for example data.
 3. Under **Authentication → URL configuration**, set the Site URL to where the app will be hosted (for local development, `http://localhost:5173`).
 4. Copy `.env.example` to `.env` and fill in the project URL and anon key from **Project Settings → API**.
 5. Install and run:
