@@ -63,6 +63,7 @@ import AdminCoverage from './pages/AdminCoverage'
 import AdminSafeVoice from './pages/AdminSafeVoice'
 import AdminResults from './pages/AdminResults'
 import Join from './pages/Join'
+import Results from './pages/Results'
 import AdminInvitations from './pages/AdminInvitations'
 
 function RequireRole({ roles, children }: { roles: Role[]; children: React.ReactNode }) {
@@ -121,6 +122,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<SurveyHome surveyOnly />} />
             <Route path="/vision/:id" element={<VisionWizard />} />
+            <Route path="/results" element={<Results />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
@@ -156,6 +158,7 @@ export default function App() {
           <NavLink to="/vision"><ClipboardList size={18} /> My survey</NavLink>
           <NavLink to="/speak-up"><ShieldCheck size={18} /> Speak up safely</NavLink>
           <NavLink to="/initiatives"><Rocket size={18} /> You said, we did</NavLink>
+          <NavLink to="/results"><BarChart3 size={18} /> Results for everyone</NavLink>
           {(role === 'management' || isAdmin) && <NavLink to="/reports"><FileText size={18} /> Reports</NavLink>}
 
           {FEATURES.community && (
@@ -188,7 +191,7 @@ export default function App() {
           {isAdmin && (
             <>
               <p className="nav-section">Super admin</p>
-              <NavLink to="/admin" end><BarChart3 size={18} /> Results</NavLink>
+              <NavLink to="/admin" end><BarChart3 size={18} /> Full dashboard</NavLink>
               <NavLink to="/admin/inbox"><Inbox size={18} /> Responses <Badge n={counts.submissions + counts.feedback} /></NavLink>
               <NavLink to="/admin/safe-voice"><ShieldCheck size={18} /> Speak-up inbox</NavLink>
               {FEATURES.community && <NavLink to="/admin/community"><Sparkles size={18} /> Community</NavLink>}
@@ -217,6 +220,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={FEATURES.community ? <Home /> : <SurveyHome />} />
           <Route path="/vision" element={<MyVision />} />
+          <Route path="/results" element={<Results />} />
           <Route path="/vision/:id" element={<VisionWizard />} />
           <Route path="/speak-up" element={<SpeakUp />} />
           <Route path="/initiatives" element={<Initiatives />} />

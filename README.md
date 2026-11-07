@@ -67,6 +67,17 @@ Everyone can take part, with or without a company e-mail:
 
 **One-time Supabase setting for invitation links:** Authentication → Sign In / Providers → turn on **Allow anonymous sign-ins** (recommended: also turn on CAPTCHA protection under Authentication → Attack Protection). E-mail invitations and company e-mails work without this setting.
 
+## Results for everyone
+
+`/results` is a simple, bilingual page for the whole company:
+- how many people took part, and the overall score with a plain-word label;
+- the top-rated department, the one needing most support, the biggest problem and the biggest strength;
+- every department ranked by its score, with what colleagues say it does well and should improve;
+- the biggest company problems and strengths, with how many people said each;
+- podiums for the best department, manager and employee.
+
+It's built by one database function (`results_summary`) that returns only combined numbers. A department's score needs 3+ ratings from other departments. A written answer appears only if 2+ people gave it. Names need 2+ votes. Ideas are counted, never shown. The super admin and management can always open it (to preview it, or present it full screen). Everyone else sees it only after the super admin presses **Share with everyone**; staff then get a **See the results** button on their survey home page.
+
 ## Who sees what (confidential model)
 
 | Role | Can see |
@@ -81,7 +92,7 @@ Staff are told this in the survey. The rules are enforced by Postgres row-level 
 ## Setup
 
 1. Create a Supabase project at https://supabase.com.
-2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives; `0007_invitations.sql` adds invitations; `0008_small_team_privacy.sql` keeps anonymous answers safe in a small team; `0009_roles_super_admin.sql` adds the super admin and survey admins and one-tap joining; `0010_hardening.sql` applies two small fixes from the Supabase security advisor; `0011_company_email_invitations.sql` lets an invitation give a company e-mail its role, e.g. Survey admin; `0012_one_person_one_link.sql` switches off shared links and makes everyone need an invitation, so votes can't exceed the number of people invited). Files run in the SQL editor don’t appear under Database → Migrations; that list only shows migrations applied through the CLI or API. Optionally run `supabase/seed.sql` for example data.
+2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives; `0007_invitations.sql` adds invitations; `0008_small_team_privacy.sql` keeps anonymous answers safe in a small team; `0009_roles_super_admin.sql` adds the super admin and survey admins and one-tap joining; `0010_hardening.sql` applies two small fixes from the Supabase security advisor; `0011_company_email_invitations.sql` lets an invitation give a company e-mail its role, e.g. Survey admin; `0012_one_person_one_link.sql` switches off shared links and makes everyone need an invitation, so votes can't exceed the number of people invited; `0013_results_for_everyone.sql` adds the results page for everyone). Files run in the SQL editor don’t appear under Database → Migrations; that list only shows migrations applied through the CLI or API. Optionally run `supabase/seed.sql` for example data.
 3. Under **Authentication → URL configuration**, set the Site URL to where the app will be hosted (for local development, `http://localhost:5173`).
 4. Copy `.env.example` to `.env` and fill in the project URL and anon key from **Project Settings → API**.
 5. Install and run:

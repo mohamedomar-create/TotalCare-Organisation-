@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, ClipboardList, EyeOff, Lock, Rocket, ShieldCheck, Sparkles, Timer, Users } from 'lucide-react'
+import { ArrowRight, BarChart3, CheckCircle2, ClipboardList, EyeOff, Lock, Rocket, ShieldCheck, Sparkles, Timer, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { createSubmission, useAllowance, useMySubmissions } from '../lib/submissions'
-import { WIZARD_STEPS } from '../lib/survey'
+import { WIZARD_STEPS, type SurveyAnswers } from '../lib/survey'
+import { missingAnswers } from '../lib/quality'
+import type { Submission } from '../lib/types'
 import { STATUS, useInitiatives } from '../lib/initiatives'
 import { CountUp } from '../components/ui'
+
+/** The step a draft reopens at: as far as it got, but never past the first unanswered question. */
+function resumeStep(d: Submission) {
+  const gaps = missingAnswers((d.answers ?? {}) as SurveyAnswers)
+  const firstGap = gaps.length ? Math.min(...gaps.map((i) => i.step)) : WIZARD_STEPS.length - 1
+  return Math.min(d.current_step ?? 0, firstGap, WIZARD_STEPS.length - 1)
+}
 
 function greeting() {
   const h = new Date().getHours()
@@ -22,6 +31,12 @@ export default function SurveyHome({ surveyOnly = false }: { surveyOnly?: boolea
   const { items: initiatives } = useInitiatives(session?.user.id)
   const [progress, setProgress] = useState<{ responses: number; people: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // When the super admin shares the results, a button to them appears here.
+  const [resultsOpen, setResultsOpen] = useState(false)
+  useEffect(() => {
+    supabase.rpc('results_summary').then(({ data }) => setResultsOpen(Boolean((data as { allowed?: boolean; published?: boolean } | null)?.published && (data as { allowed?: boolean }).allowed)))
+  }, [])
 
   useEffect(() => {
     supabase.rpc('survey_progress').then(({ data }) => {
@@ -63,9 +78,10 @@ export default function SurveyHome({ surveyOnly = false }: { surveyOnly?: boolea
               <div className="sent-banner"><CheckCircle2 size={20} /> Thank you — your answers are in. <span lang="ar">شكراً، رأيك وصل.</span></div>
             ) : (
               <button type="button" className="hero-cta big" onClick={start}>
-                <ClipboardList size={18} /> {draft ? `Continue — step ${(draft.current_step ?? 0) + 1} of ${WIZARD_STEPS.length}` : 'Start the survey · ابدأ الاستبيان'} <ArrowRight size={18} />
+                <ClipboardList size={18} /> {draft ? `Continue — step ${resumeStep(draft) + 1} of ${WIZARD_STEPS.length} · كمّل` : 'Start the survey · ابدأ الاستبيان'} <ArrowRight size={18} />
               </button>
             )}
+            {resultsOpen && <Link className="button secondary hero-results" to="/results"><BarChart3 size={18} /> See the results · شوف النتايج</Link>}
             {error && <p className="error">{error}</p>}
           </div>
           <div className="me-card participation">

@@ -2,7 +2,7 @@
 // Demo mode only (VITE_DEMO=1): answers every Supabase call in the browser from sample data,
 // so the survey and dashboard can be tried with nothing saved to TotalCare.
 const REF = 'ijsxhfvtcvvvjqxwvjlo'
-const STORE = 'tc-demo-v3'
+const STORE = 'tc-demo-v4'
 const ADMIN = { id: 'aaaaaaaa-0000-0000-0000-000000000001', email: 'mohamed.omar@totalcareegypt.com', full_name: 'Mohamed Omar', role: 'admin' }
 const STAFF = { id: 'bbbbbbbb-0000-0000-0000-000000000002', email: 'sara.ali@totalcareegypt.com', full_name: 'Sara Ali', role: 'staff' }
 const HELPER = { id: 'cccccccc-0000-0000-0000-000000000003', email: 'nour.hassan@totalcareegypt.com', full_name: 'Nour Hassan', role: 'distributor' }
@@ -102,6 +102,51 @@ function applyFilters(list, params) {
 const rpc = {
   my_submission_allowance: () => ({ allowed: 1, used: db.submissions.filter((s) => s.author_id === currentUser.id).length + db.receipts.filter((r) => r.user_id === currentUser.id).length }),
   survey_progress: () => ({ responses: db.submissions.filter((s) => s.status === 'submitted').length, people: db.profiles.length }),
+  set_results_published: ({ p_on }) => {
+    if (currentUser.role !== 'admin') throw new Error('Only the super admin can share the results')
+    db.app_settings[0].results_published = p_on
+    return null
+  },
+  // Same rules as the database function: no raw answers, 3+ ratings per department, 2+ people per written answer.
+  results_summary: () => {
+    const published = Boolean(db.app_settings[0].results_published)
+    const member = db.profiles.find((p) => p.id === currentUser.id)?.active !== false
+    if (!(currentUser.role === 'admin' || currentUser.role === 'management' || (member && published))) return { published: false, allowed: false }
+    const subs = db.submissions.filter((x) => x.status === 'submitted' && x.answers?.v === 2).map((x) => x.answers)
+    const norm = (t) => String(t ?? '').trim().replace(/\s+/g, ' ').toLowerCase()
+    const top = (texts, n, min = 2) => {
+      const m = new Map()
+      for (const t of texts) { const k = norm(t); if (!k) continue; const r = m.get(k) ?? { text: String(t).trim(), count: 0 }; r.count++; m.set(k, r) }
+      return [...m.values()].filter((r) => r.count >= min).sort((a, b) => b.count - a.count || a.text.localeCompare(b.text)).slice(0, n)
+    }
+    const others = []
+    for (const a of subs) for (const [k, r] of Object.entries(a.depts ?? {})) if (!r.skip && typeof r.score === 'number' && a.my_dept !== k) others.push({ dept: k, score: r.score, r })
+    const avg = (xs) => (xs.length ? Math.round((xs.reduce((s, x) => s + x, 0) / xs.length) * 10) / 10 : null)
+    const departments = DEPTS.map((key) => {
+      const rs = others.filter((o) => o.dept === key)
+      const ok = rs.length >= 3
+      const split = (f) => rs.flatMap((o) => String(o.r[f] ?? '').split(',')).map((t) => t.trim()).filter(Boolean)
+      return { key, n: rs.length, avg: ok ? avg(rs.map((o) => o.score)) : null, high: ok ? rs.filter((o) => o.score >= 9).length : null, low: ok ? rs.filter((o) => o.score <= 4).length : null,
+        strengths: ok ? top(split('strengths'), 3) : [], weaknesses: ok ? top(split('weaknesses'), 3) : [] }
+    }).filter((d) => d.n > 0)
+    const noms = (field, isDept) => {
+      const m = new Map()
+      for (const a of subs) (a[field] ?? []).slice(0, 3).forEach((x, i) => {
+        const name = isDept ? x : x?.name; const k = norm(name); if (!k) return
+        const r = m.get(k) ?? { [isDept ? 'key' : 'name']: String(name).trim(), points: 0, votes: 0, firsts: 0 }
+        r.points += 3 - i; r.votes++; if (i === 0) r.firsts++; m.set(k, r)
+      })
+      return [...m.values()].filter((r) => r.votes >= 2).sort((a, b) => b.points - a.points || b.votes - a.votes).slice(0, 3)
+    }
+    return {
+      published, allowed: true, responses: subs.length, people: db.profiles.filter((p) => p.active !== false).length,
+      company: { avg: avg(others.map((o) => o.score)), n: others.length, high: others.filter((o) => o.score >= 9).length, low: others.filter((o) => o.score <= 4).length },
+      departments,
+      problems: top(subs.flatMap((a) => a.company_problems ?? []), 6), strengths: top(subs.flatMap((a) => a.company_strengths ?? []), 6),
+      best_departments: noms('best_departments', true), best_managers: noms('best_managers'), best_employees: noms('best_employees'),
+      ideas: subs.flatMap((a) => a.company_ideas ?? []).filter((t) => String(t).trim()).length,
+    }
+  },
   survey_dept_counts: () => {
     if (!distributes()) return []
     const m = new Map()
