@@ -6,15 +6,14 @@ import { useDirectory } from '../lib/useDirectory'
 import { MY_DEPARTMENT_EXTRA, SURVEY_DEPARTMENTS } from '../lib/survey'
 import type { Profile } from '../lib/types'
 
-const INVITE_AR = 'زمايلنا في TotalCare 👋 رأيكم مهم جداً. الاستبيان بياخد حوالي ٨ دقايق، وتقدر تبعته من غير اسمك خالص. أحسن فكرة هيتم مكافأتها وتنفيذها.'
-const INVITE_EN = 'Dear TotalCare team, your opinion matters. The survey takes about 8 minutes and you can send it anonymously. The best idea will be rewarded and implemented.'
+const INVITE_AR = 'زمايلنا في TotalCare 👋 لسه فاضل وقت للاستبيان! افتح لينك الدعوة الخاص بيك اللي وصلك على واتساب (أو سجّل بإيميل الشركة). حوالي ١٠ دقايق وتقدر تبعته من غير اسمك. أحسن فكرة هيتم مكافأتها وتنفيذها.'
+const INVITE_EN = 'Dear TotalCare team, there is still time to answer the survey! Open your personal invitation link (sent to you on WhatsApp), or sign in with your company e-mail. About 10 minutes, and you can send it anonymously. The best idea will be rewarded and implemented.'
 
 export default function AdminCoverage() {
   // Counts and names only: survey admins can use this page without seeing any answers.
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [counts, setCounts] = useState<Map<string, number>>(new Map())
   const [loading, setLoading] = useState(true)
-  const [teamCode, setTeamCode] = useState<string | null>(null)
   const { departments, people } = useDirectory()
   const [participants, setParticipants] = useState<Set<string>>(new Set())
   const [copied, setCopied] = useState('')
@@ -24,11 +23,7 @@ export default function AdminCoverage() {
       supabase.from('profiles').select('*'),
       supabase.rpc('survey_dept_counts'),
       supabase.rpc('survey_participants'),
-      supabase.from('invitations').select('code, max_uses, uses, department_id, revoked, expires_at').gte('max_uses', 100).order('created_at', { ascending: false }),
-    ]).then(([p, c, part, inv]) => {
-      type Inv = { code: string; max_uses: number; uses: number; department_id: string | null; revoked: boolean; expires_at: string }
-      const open = ((inv.data ?? []) as Inv[]).find((i) => !i.department_id && !i.revoked && i.uses < i.max_uses && new Date(i.expires_at) > new Date())
-      setTeamCode(open?.code ?? null)
+    ]).then(([p, c, part]) => {
       setProfiles((p.data ?? []) as Profile[])
       setCounts(new Map(((c.data ?? []) as { dept: string; answers: number }[]).map((r) => [r.dept, Number(r.answers)])))
       setParticipants(new Set(((part.data ?? []) as { user_id: string }[]).map((r) => r.user_id)))
@@ -37,8 +32,7 @@ export default function AdminCoverage() {
   }, [])
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  // The company-wide invitation link opens the survey in one tap; without it, people need a company e-mail.
-  const link = teamCode ? `${origin}/join/${teamCode}` : origin
+  const link = origin
   const message = `${INVITE_AR}\n\n${INVITE_EN}\n\n${link}`
   const deptName = useMemo(() => new Map(departments.map((d) => [d.id, d.name.toLowerCase()])), [departments])
 
@@ -85,14 +79,14 @@ export default function AdminCoverage() {
         </section>
 
         <section className="card">
-          <h2><Megaphone size={18} /> Invite everyone</h2>
+          <h2><Megaphone size={18} /> Remind everyone</h2>
           <p className="muted small">Most field staff read WhatsApp first. Send this to department groups — it says the survey can be anonymous.</p>
           <pre className="invite" dir="auto">{message}</pre>
           <div className="row">
             <a className="button" href={`https://wa.me/?text=${encodeURIComponent(message)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} /> Share on WhatsApp</a>
             <button type="button" className="secondary" onClick={() => copy(message, 'invite')}><Copy size={15} /> {copied === 'invite' ? 'Copied' : 'Copy message'}</button>
           </div>
-          {teamCode ? <p className="muted small">This uses your link for everyone: one tap and they’re in the survey, no e-mail needed. Personal links are on <Link to="/admin/invitations">Invitations</Link>.</p> : <p className="notice small">This link only works for company e-mails. Create the <b>link for everyone</b> on <Link to="/admin/invitations">Invitations</Link> so colleagues without e-mail can join in one tap.</p>}
+          <p className="notice small">This is a reminder only — it doesn’t let anyone in. Each person joins with their own one-time invitation from <Link to="/admin/invitations">Invitations</Link>, so the number of answers can never exceed the number of employees you invited.</p>
         </section>
       </div>
 

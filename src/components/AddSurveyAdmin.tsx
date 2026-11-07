@@ -44,7 +44,7 @@ export default function AddSurveyAdmin({ users, onDone }: { users: Profile[]; on
         if (error) throw new Error(/invitations_email_open|duplicate/.test(error.message) ? 'This e-mail already has an open invitation. Cancel it on the Invitations page first.' : error.message)
         const link = `${window.location.origin}/join/${code}`
         setResult(isEmail
-          ? { text: `Done. When ${name.trim()} signs in with ${c.toLowerCase()} at ${window.location.origin}, they become a survey admin. You can also send them this link:`, link }
+          ? { text: `Done. When ${name.trim()} signs in with ${c.toLowerCase()} at ${window.location.origin}, they become a survey admin.` }
           : { text: `Send this link to ${name.trim()} on WhatsApp. When they open it, they become a survey admin. The link is personal and works once.`, link, phone: c })
       }
       setName('')

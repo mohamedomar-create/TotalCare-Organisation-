@@ -1210,7 +1210,8 @@ a.kpi:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
 .tone-violet { background: #ede9fe; color: #5b21b6; }
 .everyone-link { border: 2px solid #0d9488; background: #f0fdfa; }
 .everyone-url { word-break: break-all; background: #fff; border: 1px dashed #5eead4; border-radius: 8px; padding: 8px 10px; font-size: 14px; }
-.join-start { width: 100%; font-size: 1.1rem; padding: 16px; margin-top: 8px; }
+.join-start { width: 100%; font-size: 1.05rem; padding: 14px 16px; margin-top: 8px; white-space: normal; line-height: 1.35; height: auto; }
+.join .login-card { min-width: 0; max-width: 100%; box-sizing: border-box; }
 textarea.missing { border-color: #dc2626; background: #fef2f2; }
 .field-missing { color: #dc2626; font-size: 13px; margin: 4px 0 0; }
 

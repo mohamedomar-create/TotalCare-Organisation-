@@ -20,7 +20,7 @@ interface Preview {
 export default function Join() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { session, refreshProfile } = useAuth()
+  const { session, profile, refreshProfile } = useAuth()
   const fromPath = location.pathname.match(/^\/join\/([^/?#]+)/)?.[1]
   const [code, setCode] = useState(decodeURIComponent(fromPath ?? '').toUpperCase())
   const [preview, setPreview] = useState<Preview | null | 'none'>(null)
@@ -28,6 +28,18 @@ export default function Join() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fromLink = Boolean(fromPath)
+
+  // A company e-mail that was invited after it first signed in: pick up the invitation now.
+  const mailbox = profile && profile.active === false && !profile.email.endsWith('@invite.local') ? profile.email : ''
+  const [checkedMail, setCheckedMail] = useState(false)
+  useEffect(() => {
+    if (!mailbox) return
+    void supabase.rpc('claim_email_invitation').then(async () => {
+      await refreshProfile()
+      setCheckedMail(true)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mailbox])
 
   useEffect(() => {
     const c = code.trim()
@@ -92,6 +104,9 @@ export default function Join() {
         {valid ? (
           <>
             <h1>{greeting ? `Welcome, ${greeting} 👋` : 'Welcome 👋'}</h1>
+            {preview.full_name && !preview.team && (
+              <p className="notice small join-personal">This link is only for <b dir="auto">{preview.full_name}</b>. It works once, on one phone. Not you? Please don’t continue — ask HR for your own link. <span lang="ar" dir="rtl">اللينك ده لـ {preview.full_name} بس. لو مش انت متكملش.</span></p>
+            )}
             <p className="lead" lang="ar" dir="rtl">{greeting ? `أهلاً ${greeting}` : 'أهلاً بيك'} — دوس على الزرار وابدأ الاستبيان.</p>
             {preview.department && <p className="muted small">{preview.department}</p>}
             {!preview.full_name && (
@@ -102,7 +117,7 @@ export default function Join() {
             )}
             {error && <p className="error">{error}</p>}
             <button type="button" className="big join-start" disabled={busy} onClick={join}>
-              {busy ? 'Opening the survey…' : <>Start the survey · ابدأ الاستبيان <ArrowRight size={18} /></>}
+              {busy ? 'Opening the survey…' : <>{greeting && !preview.team ? `I’m ${greeting} — start the survey` : 'Start the survey'} · ابدأ الاستبيان <ArrowRight size={18} /></>}
             </button>
             <p className="muted small"><ShieldCheck size={13} /> Your name is never shown with your answers if you choose “anonymously” at the end. Keep using this phone and browser to come back to your answers.</p>
           </>
@@ -111,7 +126,8 @@ export default function Join() {
             <h1><KeyRound size={22} /> Invitation · دعوة</h1>
             {fromLink && preview === null && !error && <p className="muted">Checking your link… · لحظة…</p>}
             {preview === 'none' && <p className="error">This link or code isn’t right. Check it, or ask HR for a new one. · اللينك ده مش صحيح.</p>}
-            {preview && preview !== 'none' && !preview.valid && <p className="error">This invitation was already used or has expired. Ask HR for a new one. · الدعوة دي اتستخدمت أو انتهت.</p>}
+            {preview && preview !== 'none' && !preview.valid && <p className="error">This link was already opened on another phone, or has expired. Each link works only once, for one person. If it’s yours and you didn’t open it, ask HR for a new one. · اللينك ده اتفتح قبل كده على موبايل تاني أو انتهى. كل لينك بيشتغل مرة واحدة.</p>}
+            {mailbox && checkedMail && !fromLink && <p className="notice small">You’re signed in as <b>{mailbox}</b>, but this e-mail isn’t on the invitation list yet. Ask HR to invite it, then open the site again. · الإيميل ده لسه مش في قايمة الدعوات.</p>}
             {(!fromLink || preview === 'none' || (preview && !preview.valid)) && (
               <label>
                 Invitation code · كود الدعوة

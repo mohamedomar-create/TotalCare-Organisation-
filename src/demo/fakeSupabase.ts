@@ -2,11 +2,11 @@
 // Demo mode only (VITE_DEMO=1): answers every Supabase call in the browser from sample data,
 // so the survey and dashboard can be tried with nothing saved to TotalCare.
 const REF = 'ijsxhfvtcvvvjqxwvjlo'
-const STORE = 'tc-demo-v2'
+const STORE = 'tc-demo-v3'
 const ADMIN = { id: 'aaaaaaaa-0000-0000-0000-000000000001', email: 'mohamed.omar@totalcareegypt.com', full_name: 'Mohamed Omar', role: 'admin' }
 const STAFF = { id: 'bbbbbbbb-0000-0000-0000-000000000002', email: 'sara.ali@totalcareegypt.com', full_name: 'Sara Ali', role: 'staff' }
 const HELPER = { id: 'cccccccc-0000-0000-0000-000000000003', email: 'nour.hassan@totalcareegypt.com', full_name: 'Nour Hassan', role: 'distributor' }
-const TEAM_CODE = 'TCALL2026'
+const INVITE_CODE = 'HASSAN2026'
 const DEPTS = ['marketing', 'installations', 'collections', 'accounting', 'sales', 'maintenance', 'purchasing', 'hr_legal']
 let seq = 0
 const uuid = () => `00000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`
@@ -70,7 +70,6 @@ for (let i = 0; i < 24; i++) {
 }
 db.profiles.push(...Array.from({ length: 14 }, (_, k) => ({ id: uuid(), email: `x${k}@totalcareegypt.com`, full_name: `Colleague ${k + 1}`, role: 'staff', active: true })))
 db.invitations.push(
-  { id: uuid(), code: TEAM_CODE, full_name: '', email: null, phone: '', department_id: null, role: 'staff', max_uses: 500, uses: 9, expires_at: new Date(Date.now() + 25 * 86400000).toISOString(), revoked: false, used_by: null, last_used_at: null, created_at: now() },
   { id: uuid(), code: 'HASSAN2026', full_name: 'Hassan Mahmoud', email: null, phone: '01012345678', department_id: null, role: 'staff', max_uses: 1, uses: 0, expires_at: new Date(Date.now() + 30 * 86400000).toISOString(), revoked: false, used_by: null, last_used_at: null, created_at: now() },
 )
 let currentUser = STAFF
@@ -138,7 +137,8 @@ const rpc = {
   invite_preview: ({ p_code }) => db.invitations.filter((i) => i.code === p_code.trim().toUpperCase()).map((i) => ({ full_name: i.full_name, department: '', valid: !i.revoked && i.uses < i.max_uses, team: i.max_uses > 1 })),
   redeem_invite: ({ p_code, p_name }) => {
     const inv = db.invitations.find((i) => i.code === p_code.trim().toUpperCase() && !i.revoked && i.uses < i.max_uses)
-    if (!inv) throw new Error('This invitation code is not valid any more. Ask HR for a new one.')
+    if (!inv) throw new Error('This invitation link is not valid any more. Ask HR for a new one.')
+    if (inv.email) throw new Error(`This invitation is for ${inv.email}. Sign in with that e-mail instead.`)
     const me = db.profiles.find((p) => p.id === currentUser.id)
     if (me.active !== false) return null
     Object.assign(me, { active: true, full_name: p_name || inv.full_name, phone: inv.phone })
@@ -179,7 +179,7 @@ else seedSession(currentUser)
 
 export const demo = {
   view: () => view,
-  start: () => (view === 'invite' && !currentUser.email.endsWith('@invite.local') ? `/join/${TEAM_CODE}` : view === 'admin' ? '/admin' : view === 'distributor' ? '/admin/invitations' : '/'),
+  start: () => (view === 'invite' && !currentUser.email.endsWith('@invite.local') ? `/join/${INVITE_CODE}` : view === 'admin' ? '/admin' : view === 'distributor' ? '/admin/invitations' : '/'),
   switchTo(next) {
     view = next
     if (next === 'invite') { currentUser = STAFF; save(); clearSession(); return }

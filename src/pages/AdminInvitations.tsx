@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Ban, CalendarPlus, Copy, Globe, Link2, MessageCircle, Send, UserPlus, Users } from 'lucide-react'
+import { Ban, CalendarPlus, Copy, MessageCircle, Send, ShieldCheck, UserPlus, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useDirectory } from '../lib/useDirectory'
 import type { Role } from '../lib/types'
@@ -44,7 +44,6 @@ export default function AdminInvitations() {
   const [form, setForm] = useState({ full_name: '', phone: '', email: '', department_id: '', role: 'staff' as Role })
   const [bulk, setBulk] = useState('')
   const [bulkDept, setBulkDept] = useState('')
-  const [team, setTeam] = useState({ department_id: '', max_uses: 30, days: 14 })
   const [copied, setCopied] = useState('')
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const dept = useMemo(() => new Map(departments.map((d) => [d.id, d.name])), [departments])
@@ -60,11 +59,14 @@ export default function AdminInvitations() {
 
   const link = (i: Invitation) => `${origin}/join/${i.code}`
   const message = (i: Invitation) =>
-    [
+    i.email ? [
+      `${i.full_name ? `أهلاً ${i.full_name} 👋` : 'أهلاً 👋'} اتفضل ادخل على استبيان TotalCare: افتح ${origin} وسجّل دخول بإيميلك ${i.email}.`,
+      `${i.full_name ? `Hi ${i.full_name}, ` : 'Hi, '}please open ${origin} and sign in with your e-mail ${i.email} to answer the TotalCare survey (about 10 minutes, you can answer anonymously).`,
+    ].join('\n\n') : [
       `${i.full_name ? `أهلاً ${i.full_name} 👋` : 'أهلاً 👋'} اتفضل ادخل على استبيان TotalCare من اللينك ده — بياخد حوالي ٨ دقايق وتقدر تجاوب من غير اسمك.`,
       `${i.full_name ? `Hi ${i.full_name}, ` : 'Hi, '}here is your invitation to the TotalCare survey (about 8 minutes, you can answer anonymously):`,
       link(i),
-      i.max_uses === 1 ? 'هذا اللينك خاص بيك، متبعتوش لحد. · This link is personal — please don’t share it.' : '',
+      'اللينك ده ليك انت بس وبيشتغل مرة واحدة على موبايل واحد — متبعتوش لحد. · This link is only for you and works once, on one phone — please don’t forward it.',
     ].filter(Boolean).join('\n\n')
 
   async function create(rows: Partial<Invitation>[], done: string) {
@@ -84,14 +86,14 @@ export default function AdminInvitations() {
 
   async function addMany() {
     const rows = bulk.split('\n').map((l) => l.split(/[,\t;]/).map((x) => x.trim())).filter((p) => p[0]?.length >= 3)
-    if (!rows.length) return setError('Write one person per line: name, phone')
-    await create(rows.map(([full_name, phone = '']) => ({ full_name, phone, department_id: bulkDept || null })), `${rows.length} invitations created.`)
+    if (!rows.length) return setError('Write one person per line: name, mobile or e-mail')
+    // A second column with @ is an e-mail invitation (they sign in with it); anything else is a mobile number.
+    await create(rows.map(([full_name, contact = '']) => contact.includes('@')
+      ? { full_name, email: contact.toLowerCase(), department_id: bulkDept || null }
+      : { full_name, phone: contact, department_id: bulkDept || null }), `${rows.length} invitations created.`)
     setBulk('')
   }
 
-  async function addTeam() {
-    await create([{ full_name: '', department_id: team.department_id || null, max_uses: team.max_uses, expires_at: new Date(Date.now() + team.days * 86400000).toISOString() }], 'Team link created. Share it in the team’s WhatsApp group.')
-  }
 
   async function update(i: Invitation, patch: Partial<Invitation>) {
     const { error } = await supabase.from('invitations').update(patch).eq('id', i.id)
@@ -104,37 +106,21 @@ export default function AdminInvitations() {
     setCopied(key)
   }
 
-  // The newest company-wide link that still works.
-  const everyone = items.find((i) => i.max_uses >= 100 && !i.department_id && status(i).key === 'pending')
-  const shown = items.filter((i) => filter === 'all' || status(i).key === filter)
+    const shown = items.filter((i) => filter === 'all' || status(i).key === filter)
   const pending = items.filter((i) => status(i).key === 'pending').length
   const joined = items.reduce((a, i) => a + i.uses, 0)
 
   return (
     <div className="page wide">
       <h1>Invitations <span className="ar-title" lang="ar">الدعوات</span></h1>
-      <p className="muted">Invite anyone — drivers, technicians, warehouse staff, colleagues with a personal e-mail. They open a personal link on their phone and join with no e-mail or password. Company e-mails (@totalcareegypt.com) don’t need an invitation.</p>
+      <p className="muted">Invite every employee once. People without a company e-mail open their personal link on their phone — no e-mail or password. People with a company e-mail sign in with it after you invite that address.</p>
       {error && <p className="error">{error}</p>}
       {notice && <p className="notice" onClick={() => setNotice(null)}>{notice}</p>}
 
       <section className="card everyone-link">
-        <h2><Globe size={18} /> One link for everyone · لينك واحد للكل</h2>
-        {everyone ? (
-          <>
-            <p className="muted small">Post it in every WhatsApp group. Each person taps it and starts the survey on their phone — no e-mail, no password. {everyone.uses} joined so far · works until {new Date(everyone.expires_at).toLocaleDateString()}.</p>
-            <p className="mono everyone-url">{link(everyone)}</p>
-            <div className="row">
-              <a className="button" href={`https://wa.me/?text=${encodeURIComponent(message(everyone))}`} target="_blank" rel="noreferrer"><MessageCircle size={15} /> Share on WhatsApp</a>
-              <button type="button" className="secondary" onClick={() => copy(message(everyone), 'everyone')}><Copy size={15} /> {copied === 'everyone' ? 'Copied' : 'Copy message'}</button>
-              <button type="button" className="secondary" onClick={() => copy(link(everyone), 'everyone-link')}><Link2 size={15} /> {copied === 'everyone-link' ? 'Copied' : 'Copy link only'}</button>
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="muted small">Make one link for the whole company (up to 500 people, 30 days) and post it in your WhatsApp groups. Personal links below are better when you have the person’s number.</p>
-            <button type="button" onClick={() => void create([{ full_name: '', max_uses: 500, expires_at: new Date(Date.now() + 30 * 86400000).toISOString() }], 'Link for everyone created — share it on WhatsApp.')}><Globe size={15} /> Create the link for everyone</button>
-          </>
-        )}
+        <h2><ShieldCheck size={18} /> One person · one link · one vote <span className="ar-title" lang="ar">شخص واحد · لينك واحد · صوت واحد</span></h2>
+        <p className="muted small">Every invitation is personal. It works <b>once</b>: the first phone that opens it becomes that person’s only account, so a forwarded link says “already used”. Company e-mails need an invitation too. Create one invitation per employee — {items.filter((i) => !i.revoked).length} so far, {items.filter((i) => i.uses > 0).length} joined.</p>
+        <p className="muted small" lang="ar" dir="rtl">كل لينك لشخص واحد ويشتغل مرة واحدة على موبايل واحد. لو اتبعت لحد تاني هيظهرله إنه اتستخدم.</p>
       </section>
 
       <div className="kpi-grid">
@@ -172,26 +158,14 @@ export default function AdminInvitations() {
         <div className="stack-cards">
           <section className="card">
             <h2><Users size={18} /> Invite many at once</h2>
-            <textarea rows={4} dir="auto" value={bulk} onChange={(e) => setBulk(e.target.value)} placeholder={'One per line: name, mobile\nHassan Mahmoud, 01012345678\nمحمد سعيد, 01198765432'} />
+            <p className="muted small">Paste your staff list. People with a company e-mail get an e-mail invitation (they sign in with it); everyone else gets a personal WhatsApp link.</p>
+            <textarea rows={4} dir="auto" value={bulk} onChange={(e) => setBulk(e.target.value)} placeholder={'One per line: name, mobile or e-mail\nHassan Mahmoud, 01012345678\nSara Ali, sara.ali@totalcareegypt.com\nمحمد سعيد, 01198765432'} />
             <div className="row">
               <select value={bulkDept} onChange={(e) => setBulkDept(e.target.value)} style={{ width: 'auto' }}>
                 <option value="">Department (optional)</option>
                 {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
               <button type="button" className="secondary" onClick={addMany}>Create all</button>
-            </div>
-          </section>
-          <section className="card">
-            <h2><Link2 size={18} /> Team link</h2>
-            <p className="muted small">One link for one team’s WhatsApp group: one tap and they’re in (their name is optional). It stops after the number of people you set, and only creates staff members. Personal links are safer — use this when you don’t have everyone’s number.</p>
-            <div className="row">
-              <select value={team.department_id} onChange={(e) => setTeam({ ...team, department_id: e.target.value })} style={{ width: 'auto' }}>
-                <option value="">Any department</option>
-                {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-              </select>
-              <label className="inline-check">Up to <input type="number" min={2} max={500} value={team.max_uses} onChange={(e) => setTeam({ ...team, max_uses: Math.max(2, Number(e.target.value)) })} style={{ width: 80 }} /> people</label>
-              <label className="inline-check">for <input type="number" min={1} max={90} value={team.days} onChange={(e) => setTeam({ ...team, days: Math.max(1, Number(e.target.value)) })} style={{ width: 70 }} /> days</label>
-              <button type="button" className="secondary" onClick={addTeam}>Create</button>
             </div>
           </section>
         </div>
@@ -213,7 +187,7 @@ export default function AdminInvitations() {
               return (
                 <tr key={i.id}>
                   <td>
-                    <b dir="auto">{i.max_uses > 1 ? `Team link (${i.max_uses} people)` : i.full_name}</b>
+                    <b dir="auto">{i.max_uses > 1 ? `Shared link (switched off)` : i.full_name}</b>
                     <div className="muted small">{[i.phone, i.email, i.role !== 'staff' ? ROLE_LABEL[i.role] : ''].filter(Boolean).join(' · ')}</div>
                     <div className="mono tiny muted">{i.code}</div>
                   </td>
