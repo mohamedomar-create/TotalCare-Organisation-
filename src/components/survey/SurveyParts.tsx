@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { ArrowLeft, ArrowRight, Check, Crown, Gift } from 'lucide-react'
 import { ARABIC, SURVEY_DEPARTMENTS, type DeptReview, type Nomination } from '../../lib/survey'
-import { deptGaps } from '../../lib/quality'
+import { answered, deptGaps } from '../../lib/quality'
 
 /** 1–10 score buttons, red to green. */
 export function ScoreScale({ value, onChange, disabled }: { value?: number; onChange: (v: number) => void; disabled?: boolean }) {
@@ -37,6 +37,9 @@ export function DeptReviewer({ depts, myDept, index, onIndex, onChange }: {
   // Every department is required now, so an old "skip" is cleared on the first answer.
   const set = (patch: Partial<DeptReview>) => onChange(d.key, { ...r, skip: undefined, ...patch })
   const done = SURVEY_DEPARTMENTS.filter((x) => deptState(depts[x.key]) === 'done').length
+  // Once a department is started, point at the boxes still empty in it.
+  const flag = deptState(r) === 'partial'
+  const miss = (v?: string) => (flag && !answered(v) ? 'missing' : '')
   return (
     <div className="dept-reviewer">
       <div className="dept-tabs" role="tablist">
@@ -62,17 +65,18 @@ export function DeptReviewer({ depts, myDept, index, onIndex, onChange }: {
         <>
             <p className="field-label">1. Your opinion of {d.name} <Req /> <span className="ar-inline" lang="ar">١- رأيك في {d.ar}</span></p>
             <ScoreScale value={r.score} onChange={(v) => set({ score: v })} />
+            {flag && typeof r.score !== 'number' && <p className="field-missing">Choose a score from 1 to 10 · اختار تقييم</p>}
             <label>
               <span>2. Biggest strengths <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٢- أكبر مميزات {d.ar}</span>
-              <textarea rows={2} dir="auto" value={r.strengths ?? ''} onChange={(e) => set({ strengths: e.target.value })} placeholder="e.g. Always answer the phone, fast with hospitals…" />
+              <textarea rows={2} dir="auto" className={miss(r.strengths)} aria-invalid={Boolean(miss(r.strengths))} value={r.strengths ?? ''} onChange={(e) => set({ strengths: e.target.value })} placeholder="e.g. Always answer the phone, fast with hospitals…" />
             </label>
             <label>
               <span>3. Biggest weaknesses <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٣- أكبر عيوب {d.ar}</span>
-              <textarea rows={2} dir="auto" value={r.weaknesses ?? ''} onChange={(e) => set({ weaknesses: e.target.value })} placeholder="e.g. Late replies, papers get lost…" />
+              <textarea rows={2} dir="auto" className={miss(r.weaknesses)} aria-invalid={Boolean(miss(r.weaknesses))} value={r.weaknesses ?? ''} onChange={(e) => set({ weaknesses: e.target.value })} placeholder="e.g. Late replies, papers get lost…" />
             </label>
             <label>
               <span>4. Ideas to improve it <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٤- أفكار لتحسين {d.ar}</span>
-              <textarea rows={2} dir="auto" value={r.ideas ?? ''} onChange={(e) => set({ ideas: e.target.value })} placeholder="One clear idea is enough" />
+              <textarea rows={2} dir="auto" className={miss(r.ideas)} aria-invalid={Boolean(miss(r.ideas))} value={r.ideas ?? ''} onChange={(e) => set({ ideas: e.target.value })} placeholder="One clear idea is enough" />
             </label>
         </>
         <div className="row between">

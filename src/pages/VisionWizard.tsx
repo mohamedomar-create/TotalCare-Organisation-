@@ -88,7 +88,10 @@ export default function VisionWizard() {
           timer.current = window.setTimeout(() => void flush(), 500)
         }
         setSub(s)
-        setStep(s.status === 'submitted' ? LAST : Math.min(s.current_step ?? 0, LAST))
+        // Reopen at the furthest step reached, but never past the first question still unanswered.
+        const gaps = missingAnswers((s.answers ?? {}) as SurveyAnswers)
+        const firstGap = gaps.length ? Math.min(...gaps.map((i) => i.step)) : LAST
+        setStep(s.status === 'submitted' ? LAST : Math.min(s.current_step ?? 0, firstGap, LAST))
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])

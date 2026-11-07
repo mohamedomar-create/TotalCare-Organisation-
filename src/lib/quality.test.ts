@@ -94,6 +94,14 @@ describe('every question is required', () => {
     expect(m.every((i) => i.severity === 'hard')).toBe(true)
   })
 
+  it('a short answer in any language counts; dashes and dots do not', () => {
+    const a = full()
+    a.depts!.sales = { score: 5, strengths: 'i', weaknesses: 'ب', ideas: '3' }
+    expect(missingAnswers(a)).toEqual([])
+    a.depts!.sales = { score: 5, strengths: '-', weaknesses: ' . ', ideas: '…' }
+    expect(missingAnswers(a)[0].message).toBe('Sales: answer the strengths, weaknesses, ideas.')
+  })
+
   it('an old "I don\'t deal with them" no longer counts as an answer', () => {
     const a = full()
     a.depts!.purchasing = { skip: true }

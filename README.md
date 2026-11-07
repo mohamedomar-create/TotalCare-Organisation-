@@ -14,7 +14,7 @@ The survey is the front door. The earlier community features (ideas board, kudos
 4. **The company**: biggest problems (3) and best strengths (3), all required, with tap-to-fill suggestions so similar answers are counted together.
 5. **Ideas**: 5 ideas to develop the company (all required). *The best idea is rewarded and implemented where possible.*
 
-**Every question is required.** Next stays on the step and lists what is missing (with a button to jump to each department), the steps ahead unlock once the earlier ones are complete, and Send is blocked until everything is answered. An answer needs at least two characters.
+**Every question is required.** Next stays on the step and lists what is missing (with a button to jump to each department), the steps ahead unlock once the earlier ones are complete, and Send is blocked until everything is answered. An answer needs at least one letter or number ("-" or "." don't count).
 
 6. **Check & send**: a summary to review, the answer checks, and the choice to send **with my name** or **anonymously**.
 

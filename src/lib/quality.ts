@@ -100,8 +100,8 @@ export function assessQuality(a: SurveyAnswers, myName = '', now = new Date()): 
   }
 }
 
-/** An answer counts once it has at least two characters (so "-" or "." doesn't). */
-export const answered = (s?: string) => (s ?? '').trim().length >= 2
+/** An answer counts once it has a letter or a number in it (so "-" or "." doesn't), in any language. */
+export const answered = (s?: string) => /[\p{L}\p{N}]/u.test(s ?? '')
 
 /** Which of the four questions about one department are still empty. */
 export function deptGaps(r?: DeptReview) {
