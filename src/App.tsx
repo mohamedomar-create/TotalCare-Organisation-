@@ -8,7 +8,6 @@ import {
   ShieldCheck,
   BarChart3,
   BookUser,
-  FileText,
   Gift,
   Heart,
   Home as HomeIcon,
@@ -37,14 +36,11 @@ import OrgChart from './pages/OrgChart'
 import Directory from './pages/Directory'
 import MyVision from './pages/MyVision'
 import VisionWizard from './pages/VisionWizard'
-import AdminDashboard from './pages/AdminDashboard'
 import AdminInbox from './pages/AdminInbox'
 import AdminSubmissionDetail from './pages/AdminSubmissionDetail'
 import AdminDirectory from './pages/AdminDirectory'
 import AdminUsers from './pages/AdminUsers'
 import AdminEmail from './pages/AdminEmail'
-import Reports from './pages/Reports'
-import ReportView from './pages/ReportView'
 import Ideas from './pages/Ideas'
 import IdeaDetail from './pages/IdeaDetail'
 import KudosWall from './pages/KudosWall'
@@ -64,6 +60,7 @@ import AdminSafeVoice from './pages/AdminSafeVoice'
 import AdminResults from './pages/AdminResults'
 import Join from './pages/Join'
 import Results from './pages/Results'
+import AdminSettings from './pages/AdminSettings'
 import AdminInvitations from './pages/AdminInvitations'
 
 function RequireRole({ roles, children }: { roles: Role[]; children: React.ReactNode }) {
@@ -159,7 +156,6 @@ export default function App() {
           <NavLink to="/speak-up"><ShieldCheck size={18} /> Speak up safely</NavLink>
           <NavLink to="/initiatives"><Rocket size={18} /> You said, we did</NavLink>
           <NavLink to="/results"><BarChart3 size={18} /> Results for everyone</NavLink>
-          {(role === 'management' || isAdmin) && <NavLink to="/reports"><FileText size={18} /> Reports</NavLink>}
 
           {FEATURES.community && (
             <>
@@ -195,9 +191,10 @@ export default function App() {
               <NavLink to="/admin/inbox"><Inbox size={18} /> Responses <Badge n={counts.submissions + counts.feedback} /></NavLink>
               <NavLink to="/admin/safe-voice"><ShieldCheck size={18} /> Speak-up inbox</NavLink>
               {FEATURES.community && <NavLink to="/admin/community"><Sparkles size={18} /> Community</NavLink>}
-              <NavLink to="/admin/directory"><Settings2 size={18} /> Departments & people</NavLink>
+              <NavLink to="/admin/directory"><BookUser size={18} /> Departments & people</NavLink>
               <NavLink to="/admin/users"><Users size={18} /> Users & roles</NavLink>
               <NavLink to="/admin/email"><Mail size={18} /> E-mail</NavLink>
+              <NavLink to="/admin/settings"><Settings2 size={18} /> Settings</NavLink>
             </>
           )}
         </nav>
@@ -241,10 +238,11 @@ export default function App() {
             </>
           )}
           {FEATURES.community && <Route path="/admin/community" element={<RequireRole roles={['management', 'admin']}><AdminCommunity /></RequireRole>} />}
-          <Route path="/reports" element={<RequireRole roles={['management', 'admin']}><Reports /></RequireRole>} />
-          <Route path="/reports/:id" element={<RequireRole roles={['management', 'admin']}><ReportView /></RequireRole>} />
+          {/* Reports were built for the first survey; the results page replaces them. */}
+          <Route path="/reports/*" element={<Navigate to="/results" replace />} />
           <Route path="/admin" element={<RequireRole roles={['admin']}><AdminResults /></RequireRole>} />
-          <Route path="/admin/pulse" element={<RequireRole roles={['admin']}><AdminDashboard /></RequireRole>} />
+          <Route path="/admin/settings" element={<RequireRole roles={['admin']}><AdminSettings /></RequireRole>} />
+          <Route path="/admin/pulse" element={<Navigate to="/admin/settings" replace />} />
           <Route path="/admin/inbox" element={<RequireRole roles={['admin']}><AdminInbox /></RequireRole>} />
           <Route path="/admin/submissions/:id" element={<RequireRole roles={['admin']}><AdminSubmissionDetail /></RequireRole>} />
           <Route path="/admin/directory" element={<RequireRole roles={['admin']}><AdminDirectory /></RequireRole>} />

@@ -1296,3 +1296,9 @@ body.demo .survey-only-bar { top: 42px; }
   .kpi-hero { font-size: 36px; }
 }
 .hero-results { margin-top: 10px; display: inline-flex; gap: 8px; align-items: center; }
+.name-edit { border: 1px solid transparent; background: transparent; padding: 4px 6px; min-width: 140px; font: inherit; } .name-edit:hover, .name-edit:focus { border-color: var(--border, #cbd5e1); background: #fff; }
+.settings-page .setting { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.setting-text { flex: 1 1 320px; min-width: 0; }
+.setting-text h2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 4px; }
+.setting-number { font-size: 22px; min-width: 28px; text-align: center; }
+.danger-zone { border-left: 4px solid #dc2626; }

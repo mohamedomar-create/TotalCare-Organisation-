@@ -201,7 +201,7 @@ export default function AdminResults() {
         <div className="row no-print">
           <button type="button" className="secondary" onClick={() => window.print()}><Printer size={15} /> Print / PDF</button>
           <button type="button" className="secondary" onClick={() => downloadResults(subs)}><Download size={15} /> Export</button>
-          <Link to="/admin/pulse" className="button secondary"><Settings2 size={15} /> Settings</Link>
+          <Link to="/admin/settings" className="button secondary"><Settings2 size={15} /> Settings</Link>
         </div>
       </div>
       {error && <p className="error">{error}</p>}

@@ -42,7 +42,7 @@ export default function AdminDirectory() {
 
   return (
     <div className="page wide">
-      <h1>Edit directory</h1>
+      <h1>Departments & people <span className="ar-title" lang="ar">الإدارات والموظفين</span></h1>
       {error && <p className="error">{error}</p>}
 
       <section className="two-col">

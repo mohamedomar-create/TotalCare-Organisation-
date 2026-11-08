@@ -90,7 +90,7 @@ export default function AdminEmail() {
     await loadLog()
   }
 
-  if (!settings) return <div className="page">{message ? <p className="error">{message.text}</p> : <p className="muted">Loading…</p>}</div>
+  if (!settings) return <div className="page"><h1>E-mail</h1>{message ? <p className="error">Couldn’t load the e-mail settings: {message.text}</p> : <p className="muted">Loading…</p>}</div>
 
   return (
     <div className="page">

@@ -2,7 +2,7 @@
 // Demo mode only (VITE_DEMO=1): answers every Supabase call in the browser from sample data,
 // so the survey and dashboard can be tried with nothing saved to TotalCare.
 const REF = 'ijsxhfvtcvvvjqxwvjlo'
-const STORE = 'tc-demo-v4'
+const STORE = 'tc-demo-v5'
 const ADMIN = { id: 'aaaaaaaa-0000-0000-0000-000000000001', email: 'mohamed.omar@totalcareegypt.com', full_name: 'Mohamed Omar', role: 'admin' }
 const STAFF = { id: 'bbbbbbbb-0000-0000-0000-000000000002', email: 'sara.ali@totalcareegypt.com', full_name: 'Sara Ali', role: 'staff' }
 const HELPER = { id: 'cccccccc-0000-0000-0000-000000000003', email: 'nour.hassan@totalcareegypt.com', full_name: 'Nour Hassan', role: 'distributor' }
@@ -15,7 +15,7 @@ const now = () => new Date().toISOString()
 const db = {
   profiles: [ADMIN, STAFF, HELPER, ...['Mona Adel', 'Karim Mostafa', 'Hana Farouk', 'Omar Khaled', 'Laila Samir'].map((n, i) => ({ id: uuid(), email: `p${i}@totalcareegypt.com`, full_name: n, role: 'staff' }))],
   departments: [], people: [], submissions: [], receipts: [], safe_voice: [], initiatives: [], initiative_updates: [], initiative_supporters: [],
-  submission_reviews: [], feedback: [], app_settings: [{ id: 1, submissions_per_person: 1 }], invitations: [],
+  submission_reviews: [], feedback: [], app_settings: [{ id: 1, submissions_per_person: 1, invite_only: true, results_published: false }], notification_settings: [{ id: 1, notify_submissions: true, notify_feedback: true, notify_reports: false, digest: 'weekly', extra_recipients: [], app_url: '' }], invitations: [],
 }
 // 24 realistic answers for the showcase.
 const COMMENTS = {
@@ -102,6 +102,11 @@ function applyFilters(list, params) {
 const rpc = {
   my_submission_allowance: () => ({ allowed: 1, used: db.submissions.filter((s) => s.author_id === currentUser.id).length + db.receipts.filter((r) => r.user_id === currentUser.id).length }),
   survey_progress: () => ({ responses: db.submissions.filter((s) => s.status === 'submitted').length, people: db.profiles.length }),
+  survey_names: () => {
+    if (db.profiles.find((p) => p.id === currentUser.id)?.active === false) return []
+    const names = [...db.invitations.filter((i) => !i.revoked && i.role !== 'admin').map((i) => i.full_name), ...db.profiles.filter((p) => p.active !== false).map((p) => p.full_name)]
+    return [...new Set(names.map((n) => String(n ?? '').trim()).filter((n) => n.length >= 2))].sort().map((name) => ({ name }))
+  },
   set_results_published: ({ p_on }) => {
     if (currentUser.role !== 'admin') throw new Error('Only the super admin can share the results')
     db.app_settings[0].results_published = p_on

@@ -53,7 +53,7 @@ export default function AdminCoverage() {
   if (loading) return <div className="page"><p className="muted">Loading…</p></div>
   return (
     <div className="page wide">
-      <h1>Coverage & invites <span className="ar-title" lang="ar">المشاركة والدعوات</span></h1>
+      <h1>Coverage <span className="ar-title" lang="ar">المشاركة</span></h1>
       <p className="muted">Make sure every team and every function is heard. Departments come from each person’s answer; headcount comes from the people directory.</p>
 
       <div className="two-col">

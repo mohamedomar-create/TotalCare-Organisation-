@@ -42,6 +42,13 @@ export default function AdminUsers() {
     void load()
   }, [])
 
+  // Names appear in the survey's "best manager / best employee" lists, so keep them as people know them.
+  async function rename(user: Profile, full_name: string) {
+    const { error } = await supabase.from('profiles').update({ full_name }).eq('id', user.id)
+    setError(error?.message ?? null)
+    await load()
+  }
+
   async function setRole(user: Profile, role: Role) {
     if (role === 'admin' && !confirm(`Make ${user.full_name || user.email} a super admin? They will see all answers and names.`)) return
     if (role === 'distributor' && !confirm(`Make ${user.full_name || user.email} a survey admin? They can create invitation links and see who hasn’t answered, but no answers.`)) return
@@ -59,7 +66,7 @@ export default function AdminUsers() {
         ))}
       </div>
       <AddSurveyAdmin users={users} onDone={() => void load()} />
-      <p className="muted small">Someone already in the list below? You can also change their role there.</p>
+      <p className="muted small">Someone already in the list below? Change their role there. Click a name to correct it — names appear in the survey’s “best manager / best employee” lists.</p>
       <p className="muted">People appear here after their first sign-in. Invite people without a company e-mail on the <Link to="/admin/invitations">Invitations</Link> page. Everyone can send {perPerson} survey{perPerson === 1 ? '' : 's'} (change this on the dashboard). Use <strong>+1</strong> to let one person send another.</p>
       {error && <p className="error">{error}</p>}
       <table>
@@ -67,7 +74,12 @@ export default function AdminUsers() {
         <tbody>
           {users.map((u) => (
             <tr key={u.id}>
-              <td>{u.full_name || '—'}{u.active === false && <span className="pill tone-amber">not joined yet</span>}</td>
+              <td>
+                <input className="name-edit" dir="auto" defaultValue={u.full_name} aria-label="Full name" placeholder="Full name"
+                  onBlur={(e) => { const v = e.target.value.trim(); if (v !== (u.full_name ?? '') && v.length >= 2) void rename(u, v) }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }} />
+                {u.active === false && <span className="pill tone-amber">not joined yet</span>}
+              </td>
               <td>{u.email.endsWith('@invite.local') ? <span className="muted">{u.phone || 'joined by invitation link'}</span> : u.email}</td>
               <td>
                 {isOwner(u.email) ? (

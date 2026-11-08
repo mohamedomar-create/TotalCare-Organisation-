@@ -54,7 +54,7 @@ export default function AdminInbox() {
 
   return (
     <div className="page wide">
-      <h1>Inbox</h1>
+      <h1>Responses <span className="ar-title" lang="ar">الإجابات</span></h1>
       <p className="muted">Everything staff send comes here. Names are visible to you only — never share them with management.</p>
 
       <div className="tabs">
