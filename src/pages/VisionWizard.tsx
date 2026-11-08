@@ -14,7 +14,7 @@ import {
   type DeptReview,
   type SurveyAnswers,
 } from '../lib/survey'
-import { assessQuality, missingAnswers, newRewardCode, normalize, qualityRecord, type Issue } from '../lib/quality'
+import { assessQuality, missingAnswers, newRewardCode, qualityRecord, type Issue } from '../lib/quality'
 import PrivacyNotice from '../components/PrivacyNotice'
 import SubmissionSummary from '../components/SubmissionSummary'
 import SurveySummary from '../components/survey/SurveySummary'
@@ -51,12 +51,7 @@ export default function VisionWizard() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { profile } = useAuth()
-  const { departments, people } = useDirectory()
-  // Everyone invited or joined, so the whole staff list is there from the first answer.
-  const [roster, setRoster] = useState<string[]>([])
-  useEffect(() => {
-    supabase.rpc('survey_names').then(({ data }) => setRoster(((data ?? []) as { name: string }[]).map((r) => r.name)))
-  }, [])
+  const { departments } = useDirectory()
   const [deptIndex, setDeptIndex] = useState(0)
   const [copied, setCopied] = useState(false)
   const [sub, setSub] = useState<Submission | null>(null)
@@ -287,9 +282,6 @@ export default function VisionWizard() {
     go(step + 1)
   }
   const softOpen = quality.open.filter((i) => i.severity === 'soft')
-  // You can't nominate yourself, so your own name is left out of both lists.
-  const me = normalize(profile?.full_name ?? '')
-  const names = [...new Set([...roster, ...people.map((p) => p.full_name)].map((n) => (n ?? '').trim()).filter((n) => n.length >= 2 && (!me || normalize(n) !== me)))].sort((a, b) => a.localeCompare(b))
   const progress = Math.round((step / LAST) * 100)
   const myDeptChoices = [...SURVEY_DEPARTMENTS, ...MY_DEPARTMENT_EXTRA]
 
@@ -357,10 +349,10 @@ export default function VisionWizard() {
         {step === 2 && (
           <>
             <h1>The best at TotalCare <span className="ar-title" lang="ar">الأحسن في TotalCare</span></h1>
-            <p className="lead">Your top 3 in each — all three are required. Choose names from the list, or “Other” to write one. You can’t choose yourself.</p>
-            <TopThreeNames title="Best manager" ar="أحسن مدير" value={answers.best_managers ?? []} names={names} onChange={(v) => setAnswers({ best_managers: v })} />
+            <p className="lead">Your top 3 in each — all three are required. Write each person’s full name. You can’t choose yourself, and each name only once.</p>
+            <TopThreeNames title="Best manager" ar="أحسن مدير" value={answers.best_managers ?? []} onChange={(v) => setAnswers({ best_managers: v })} />
             <TopThreeDepartments value={answers.best_departments ?? []} onChange={(v) => setAnswers({ best_departments: v })} />
-            <TopThreeNames title="Best employee" ar="أحسن موظف" icon={<Users size={18} />} value={answers.best_employees ?? []} names={names} onChange={(v) => setAnswers({ best_employees: v })} />
+            <TopThreeNames title="Best employee" ar="أحسن موظف" icon={<Users size={18} />} value={answers.best_employees ?? []} onChange={(v) => setAnswers({ best_employees: v })} />
           </>
         )}
 

@@ -137,12 +137,11 @@ export function DeptReviewer({ depts, myDept, index, onIndex, onChange }: {
   )
 }
 
-/** Three required names, each picked from the staff list (or written), with an optional reason. */
-export function TopThreeNames({ title, ar, value, names, onChange, icon }: {
+/** Three required names, written freely (no list to choose from), each with an optional reason. */
+export function TopThreeNames({ title, ar, value, onChange, icon }: {
   title: string
   ar: string
   value: Nomination[]
-  names: string[]
   onChange: (v: Nomination[]) => void
   icon?: React.ReactNode
 }) {
@@ -151,16 +150,13 @@ export function TopThreeNames({ title, ar, value, names, onChange, icon }: {
   return (
     <section className="card top-three">
       <h2>{icon ?? <Crown size={18} />} {title} <Req /> <span className="ar-title" lang="ar">{ar}</span></h2>
-      {list.map((n, i) => {
-        const taken = new Set(list.filter((_, j) => j !== i).map((x) => x.name))
-        return (
-          <div key={i} className="top-three-row">
-            <span className={`rank-badge m${i + 1}`}>{i + 1}</span>
-            <PickOrWrite value={n.name} options={names.filter((x) => !taken.has(x)).map((x) => [x, ''])} onChange={(v) => set(i, { name: v })} placeholder={`${i + 1}. Choose a name · اختار الاسم`} writePlaceholder="Write the full name · اكتب الاسم بالكامل" label={`${title} ${i + 1}`} />
-            <input dir="auto" className="reason" value={n.reason ?? ''} onChange={(e) => set(i, { reason: e.target.value })} placeholder="Why? (optional) · ليه؟" disabled={!n.name.trim()} />
-          </div>
-        )
-      })}
+      {list.map((n, i) => (
+        <div key={i} className="top-three-row">
+          <span className={`rank-badge m${i + 1}`}>{i + 1}</span>
+          <input dir="auto" className="name-input" value={n.name} onChange={(e) => set(i, { name: e.target.value })} placeholder={`${i + 1}. Write the full name · اكتب الاسم بالكامل`} aria-label={`${title} ${i + 1}`} aria-required="true" autoComplete="off" />
+          <input dir="auto" className="reason" value={n.reason ?? ''} onChange={(e) => set(i, { reason: e.target.value })} placeholder="Why? (optional) · ليه؟" disabled={!n.name.trim()} />
+        </div>
+      ))}
     </section>
   )
 }
