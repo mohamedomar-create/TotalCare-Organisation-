@@ -38,6 +38,8 @@ export default function AdminInbox() {
 
   const newSubs = submissions.filter((s) => s.status === 'submitted' && (reviews.get(s.id)?.status ?? 'new') === 'new').length
   const newFb = feedback.filter((f) => f.status === 'new').length
+  // Started but not sent: these never count in the dashboard until the person presses Send.
+  const drafts = submissions.filter((s) => s.status === 'draft').length
 
   async function setFeedbackStatus(f: Feedback, next: Feedback['status']) {
     const { error } = await supabase.from('feedback').update({ status: next }).eq('id', f.id)
@@ -56,6 +58,9 @@ export default function AdminInbox() {
     <div className="page wide">
       <h1>Responses <span className="ar-title" lang="ar">الإجابات</span></h1>
       <p className="muted">Everything staff send comes here. Names are visible to you only — never share them with management.</p>
+      {drafts > 0 && status !== 'drafts' && (
+        <p className="notice small">{drafts} {drafts === 1 ? 'person has' : 'people have'} started the survey but not pressed <b>Send</b> yet — their answers don’t count until they do. <button type="button" className="link" onClick={() => { setParams({}); setStatus('drafts') }}>See who</button></p>
+      )}
 
       <div className="tabs">
         <button className={tab === 'submissions' ? 'active' : ''} onClick={() => setParams({})}>Submissions {newSubs > 0 && <span className="badge">{newSubs}</span>}</button>
@@ -70,7 +75,7 @@ export default function AdminInbox() {
         <div className="segmented">
           <button className={status === 'all' ? 'active' : ''} onClick={() => setStatus('all')}>All</button>
           <button className={status === 'new' ? 'active' : ''} onClick={() => setStatus('new')}>Unread</button>
-          {tab === 'submissions' && <button className={status === 'drafts' ? 'active' : ''} onClick={() => setStatus('drafts')}>Drafts</button>}
+          {tab === 'submissions' && <button className={status === 'drafts' ? 'active' : ''} onClick={() => setStatus('drafts')}>Not sent yet ({drafts})</button>}
         </div>
       </div>
       {(error || actionError) && <p className="error">{error || actionError}</p>}

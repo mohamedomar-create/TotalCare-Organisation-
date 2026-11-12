@@ -240,7 +240,8 @@ export default function AdminResults() {
         ))}
       </div>
 
-      {sent.length === 0 && <div className="card empty-state"><p>No answers yet. Invite people from <Link to="/admin/invitations">Invitations</Link> and track them on <Link to="/admin/coverage">Coverage</Link>.</p></div>}
+      {sent.length === 0 && <div className="card empty-state"><p>No answers sent yet. Invite people from <Link to="/admin/invitations">Invitations</Link> and track them on <Link to="/admin/coverage">Coverage</Link>.</p></div>}
+      {drafts > 0 && <p className="notice small">{drafts} {drafts === 1 ? 'person has' : 'people have'} started but not pressed <b>Send</b> yet, so {drafts === 1 ? 'it isn’t' : 'they aren’t'} counted here. <Link to="/admin/inbox">See them in Responses → Not sent yet</Link>.</p>}
 
       {sent.length > 0 && tab === 'overview' && (
         <>

@@ -1315,3 +1315,6 @@ body.demo .survey-only-bar { top: 42px; }
 .mention { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #f1f5f9; }
 .mention-row.good .mention { background: #dcfce7; color: #14532d; }
 .mention-row.bad .mention { background: #fee2e2; color: #7f1d1d; }
+.anon-choice.needs-choice .choice { border: 2px solid #dc2626; animation: pulse-choice 1.2s ease-in-out 2; }
+.choice-alert { color: #991b1b; background: #fee2e2; border-radius: 8px; padding: 8px 12px; font-weight: 600; margin: 0 0 8px; }
+@keyframes pulse-choice { 50% { box-shadow: 0 0 0 4px rgb(220 38 38 / 0.25); } }

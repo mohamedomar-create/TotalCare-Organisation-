@@ -71,7 +71,7 @@ Everyone can take part, with or without a company e-mail:
 
 | Role | Pages |
 |---|---|
-| Staff | The survey only: no menu and no links to anything else. People who joined by link get no sign-out button, because they couldn't sign back in |
+| Staff | The survey only: no menu and no links to anything else. Send always responds: if the "with my name / anonymously" choice is missing, it points to it. People who joined by link get no sign-out button, because they couldn't sign back in |
 | Survey admin | Home, My survey, Speak up safely, You said we did, Results for everyone, **Invitations**, **Coverage** |
 | Management | Home, My survey, Speak up safely, You said we did, Results for everyone (always, even before sharing) |
 | Super admin | All of the above, plus Full dashboard, Responses, Speak-up inbox, Departments & people, Users & roles, E-mail, **Settings** |

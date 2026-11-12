@@ -178,6 +178,22 @@ export default function VisionWizard() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  // Send is never a dead button: it says what is still needed and takes the person there.
+  const [needChoice, setNeedChoice] = useState(false)
+  function trySend() {
+    const a = (sub?.answers ?? {}) as SurveyAnswers
+    if (missingAnswers(a).length || assessQuality(a, profile?.full_name ?? '').open.some((i) => i.severity === 'hard')) {
+      document.querySelector('.check-card.hard')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return setSaveError('Please answer every question and fix the points marked in red first. · من فضلك صلّح النقط اللي باللون الأحمر.')
+    }
+    if (anonymous === null) {
+      setNeedChoice(true)
+      document.querySelector('.anon-choice')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+    void submit()
+  }
+
   async function submit() {
     if (!sub) return
     if (anonymous === null) return setSaveError('Choose how to send your answers: with your name or anonymously.')
@@ -403,13 +419,14 @@ export default function VisionWizard() {
             )}
             {!locked && quality.straightLined && <p className="notice small">You gave every department the same score. If that’s how you really see them, fine — otherwise take another look.</p>}
             {!locked && (
-              <div className="anon-choice">
+              <div className={`anon-choice ${needChoice && anonymous === null ? 'needs-choice' : ''}`}>
+                {needChoice && anonymous === null && <p className="choice-alert" role="alert">Last step: choose how to send your answers, then press Send. · آخر خطوة: اختار هتبعت باسمك ولا من غير اسم، وبعدين دوس ابعت.</p>}
                 <p className="field-label">How do you want to send it? <span className="ar-inline" lang="ar">عايز تبعتها إزاي؟</span></p>
-                <button type="button" className={`card choice ${anonymous === false ? 'on' : ''}`} onClick={() => setAnonymous(false)}>
+                <button type="button" className={`card choice ${anonymous === false ? 'on' : ''}`} onClick={() => { setAnonymous(false); setNeedChoice(false) }}>
                   <UserRound size={22} />
                   <span><b>With my name</b> · باسمي<br /><span className="muted small">Only the project admin sees your name and can follow up — and reward your idea directly. Management sees summaries without names.</span></span>
                 </button>
-                <button type="button" className={`card choice ${anonymous === true ? 'on' : ''}`} onClick={() => setAnonymous(true)}>
+                <button type="button" className={`card choice ${anonymous === true ? 'on' : ''}`} onClick={() => { setAnonymous(true); setNeedChoice(false) }}>
                   <EyeOff size={22} />
                   <span><b>Anonymously</b> · من غير اسم<br /><span className="muted small">Stored with no name and only today’s date: nobody, including the admin, can link the answers to you. Only your department is kept with them. You get a private code to claim the reward if your idea wins.</span></span>
                 </button>
@@ -439,7 +456,7 @@ export default function VisionWizard() {
           {step < LAST ? (
             <button type="button" onClick={next}>Next <ArrowRight size={16} /></button>
           ) : (
-            <button type="button" className="primary-lg" onClick={submit} disabled={anonymous === null || hardOpen.length > 0}><Send size={16} /> {anonymous ? 'Send anonymously · ابعت من غير اسم' : 'Send · ابعت'}</button>
+            <button type="button" className="primary-lg" onClick={trySend}><Send size={16} /> {anonymous ? 'Send anonymously · ابعت من غير اسم' : 'Send · ابعت'}</button>
           )}
         </div>
       )}
