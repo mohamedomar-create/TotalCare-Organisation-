@@ -46,7 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, profile, loading, refreshProfile: () => loadProfile(session?.user.id) }}
+      // Read the signed-in user at call time: right after joining by link, the session in this render is still the old one.
+      value={{ session, profile, loading, refreshProfile: async () => loadProfile((await supabase.auth.getSession()).data.session?.user.id) }}
     >
       {children}
     </AuthContext.Provider>

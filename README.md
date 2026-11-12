@@ -71,12 +71,12 @@ Everyone can take part, with or without a company e-mail:
 
 | Role | Pages |
 |---|---|
-| Staff | The survey only: home, the survey, and the results page once it's shared |
+| Staff | The survey only: no menu and no links to anything else. People who joined by link get no sign-out button, because they couldn't sign back in |
 | Survey admin | Home, My survey, Speak up safely, You said we did, Results for everyone, **Invitations**, **Coverage** |
 | Management | Home, My survey, Speak up safely, You said we did, Results for everyone (always, even before sharing) |
 | Super admin | All of the above, plus Full dashboard, Responses, Speak-up inbox, Departments & people, Users & roles, E-mail, **Settings** |
 
-**Settings** holds the four switches: who can answer (invited people only, or any company e-mail too), sharing the results, surveys per person, and deleting test answers. The old first-survey dashboard (`/admin/pulse`) and Reports (`/reports`) now redirect to Settings and to the results page.
+**Settings** holds the switches: who can answer (invited people only, or any company e-mail too), sharing the results with management and survey admins, surveys per person, and **Start fresh**. Start fresh lets you choose what to delete — survey answers, speak-up messages and feedback, invitations, accounts that joined by link, initiatives — after typing DELETE. Your account, other e-mail accounts, departments and settings are always kept. A single response can also be deleted from its page, and a single invitation from the Invitations list. The old first-survey dashboard (`/admin/pulse`) and Reports (`/reports`) now redirect to Settings and to the results page.
 
 ## Results for everyone
 
@@ -103,7 +103,7 @@ Staff are told this in the survey. The rules are enforced by Postgres row-level 
 ## Setup
 
 1. Create a Supabase project at https://supabase.com.
-2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives; `0007_invitations.sql` adds invitations; `0008_small_team_privacy.sql` keeps anonymous answers safe in a small team; `0009_roles_super_admin.sql` adds the super admin and survey admins and one-tap joining; `0010_hardening.sql` applies two small fixes from the Supabase security advisor; `0011_company_email_invitations.sql` lets an invitation give a company e-mail its role, e.g. Survey admin; `0012_one_person_one_link.sql` switches off shared links and makes everyone need an invitation, so votes can't exceed the number of people invited; `0013_results_for_everyone.sql` adds the results page for everyone; `0014_survey_names.sql` fills the name lists from everyone invited, not only people who already joined). Files run in the SQL editor don’t appear under Database → Migrations; that list only shows migrations applied through the CLI or API. Optionally run `supabase/seed.sql` for example data.
+2. In the **SQL editor**, run the files in `supabase/migrations/` in order (`0006_survey_v2.sql` adds anonymous answers, Speak up safely and initiatives; `0007_invitations.sql` adds invitations; `0008_small_team_privacy.sql` keeps anonymous answers safe in a small team; `0009_roles_super_admin.sql` adds the super admin and survey admins and one-tap joining; `0010_hardening.sql` applies two small fixes from the Supabase security advisor; `0011_company_email_invitations.sql` lets an invitation give a company e-mail its role, e.g. Survey admin; `0012_one_person_one_link.sql` switches off shared links and makes everyone need an invitation, so votes can't exceed the number of people invited; `0013_results_for_everyone.sql` adds the results page for everyone; `0014_survey_names.sql` fills the name lists from everyone invited, not only people who already joined; `0015_start_fresh.sql` adds Start fresh and deleting a single response). Files run in the SQL editor don’t appear under Database → Migrations; that list only shows migrations applied through the CLI or API. Optionally run `supabase/seed.sql` for example data.
 3. Under **Authentication → URL configuration**, set the Site URL to where the app will be hosted (for local development, `http://localhost:5173`).
 4. Copy `.env.example` to `.env` and fill in the project URL and anon key from **Project Settings → API**.
 5. Install and run:

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Ban, CalendarPlus, Copy, MessageCircle, Send, ShieldCheck, UserPlus, Users } from 'lucide-react'
+import { Ban, CalendarPlus, Copy, MessageCircle, Send, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useDirectory } from '../lib/useDirectory'
 import type { Role } from '../lib/types'
@@ -98,6 +98,13 @@ export default function AdminInvitations() {
   async function update(i: Invitation, patch: Partial<Invitation>) {
     const { error } = await supabase.from('invitations').update(patch).eq('id', i.id)
     if (error) setError(error.message)
+    await load()
+  }
+
+  async function remove(i: Invitation) {
+    const { error } = await supabase.from('invitations').delete().eq('id', i.id)
+    if (error) setError(error.message)
+    else setNotice(`Invitation for ${i.full_name || 'this person'} deleted.`)
     await load()
   }
 
@@ -203,7 +210,8 @@ export default function AdminInvitations() {
                   </td>
                   <td className="nowrap">
                     {(st.key === 'pending' || st.key === 'expired') && <button type="button" className="link small" onClick={() => void update(i, { expires_at: new Date(Date.now() + 30 * 86400000).toISOString() })}><CalendarPlus size={13} /> +30 days</button>}{' '}
-                    {st.key !== 'revoked' && st.key !== 'joined' && <button type="button" className="link danger small" onClick={() => confirm('Cancel this invitation? The link will stop working.') && void update(i, { revoked: true })}><Ban size={13} /> Cancel</button>}
+                    {st.key !== 'revoked' && st.key !== 'joined' && <button type="button" className="link danger small" onClick={() => confirm('Cancel this invitation? The link will stop working.') && void update(i, { revoked: true })}><Ban size={13} /> Cancel</button>}{' '}
+                    {isAdmin && <button type="button" className="link danger small" title="Delete this invitation for good" onClick={() => confirm(`Delete the invitation for ${i.full_name || 'this person'} for good? The link stops working.`) && void remove(i)}><Trash2 size={13} /> Delete</button>}
                   </td>
                 </tr>
               )

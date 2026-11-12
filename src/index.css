@@ -1303,3 +1303,15 @@ body.demo .survey-only-bar { top: 42px; }
 .setting-number { font-size: 22px; min-width: 28px; text-align: center; }
 .danger-zone { border-left: 4px solid #dc2626; }
 .top-three-row .name-input { flex: 1; min-width: 0; }
+.start-fresh h2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 4px; }
+.fresh-options { display: grid; gap: 8px; margin: 12px 0; }
+.fresh-option { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border, #e2e8f0); border-radius: 10px; cursor: pointer; }
+.fresh-option.on { border-color: #dc2626; background: #fef2f2; }
+.fresh-option input { width: 18px; height: 18px; flex: none; }
+.fresh-count { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 32px; text-align: right; }
+.mentions { display: grid; gap: 4px; margin: 6px 0; }
+.mention-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0; }
+.mention-row.good > svg { color: #16a34a; } .mention-row.bad > svg { color: #dc2626; }
+.mention { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #f1f5f9; }
+.mention-row.good .mention { background: #dcfce7; color: #14532d; }
+.mention-row.bad .mention { background: #fee2e2; color: #7f1d1d; }

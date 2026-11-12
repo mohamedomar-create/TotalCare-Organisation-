@@ -137,7 +137,7 @@ export default function Join() {
             {error && <p className="error">{error}</p>}
           </>
         )}
-        {session ? (
+        {fromLink ? null : session ? (
           <button type="button" className="link" onClick={() => supabase.auth.signOut()}><LogOut size={14} /> Sign out</button>
         ) : (
           <a className="link small" href="/" onClick={(e) => { e.preventDefault(); navigate('/') }}>I have a work e-mail — sign in instead</a>

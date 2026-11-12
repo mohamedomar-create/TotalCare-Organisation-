@@ -32,10 +32,12 @@ export default function SurveyHome({ surveyOnly = false }: { surveyOnly?: boolea
   const [progress, setProgress] = useState<{ responses: number; people: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // When the super admin shares the results, a button to them appears here.
+  // When the super admin shares the results, a button to them appears here (not for staff).
   const [resultsOpen, setResultsOpen] = useState(false)
   useEffect(() => {
+    if (surveyOnly) return // invited people see the survey and nothing else
     supabase.rpc('results_summary').then(({ data }) => setResultsOpen(Boolean((data as { allowed?: boolean; published?: boolean } | null)?.published && (data as { allowed?: boolean }).allowed)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {

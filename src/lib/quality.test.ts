@@ -147,7 +147,7 @@ describe('results', () => {
   })
 })
 
-import { applySegment, audit, companyScore, crossMatrix, highlights, themeCounts, themesOf } from './results'
+import { applySegment, audit, companyScore, crossMatrix, highlights, themeCounts, themesOf, topMentions } from './results'
 
 describe('dashboard analytics', () => {
   const mk = (id: string, my: string, depts: Record<string, { score?: number; skip?: boolean; strengths?: string; weaknesses?: string }>, extra: Partial<Submission> = {}, more: SurveyAnswers = {}) =>
@@ -201,6 +201,12 @@ describe('dashboard analytics', () => {
     expect(a.selfBias).toEqual([]) // only one person rated their own team: never shown
     expect(a.completeness.find((c) => c.label.startsWith('Rated'))!.pct).toBe(100)
     expect(a.skips[0]).toMatchObject({ key: 'hr_legal', skips: 1 })
+  })
+
+  it('counts the most-mentioned points across combined drop-down answers', () => {
+    const top = topMentions([{ text: 'Fast response, Helpful and cooperative' }, { text: 'fast response' }, { text: 'Helpful and cooperative، Fast response' }, { text: 'Slow' }])
+    expect(top).toEqual([{ text: 'Fast response', count: 3 }, { text: 'Helpful and cooperative', count: 2 }, { text: 'Slow', count: 1 }])
+    expect(topMentions([{ text: 'A, a, A' }])).toEqual([{ text: 'A', count: 1 }]) // one person counts once
   })
 
   it('filters by segment', () => {

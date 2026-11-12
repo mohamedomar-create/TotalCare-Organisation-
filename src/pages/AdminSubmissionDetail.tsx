@@ -1,21 +1,34 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Mail } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ArrowLeft, Mail, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useDirectory } from '../lib/useDirectory'
 import type { Profile, ReviewStatus, Submission, SubmissionReview } from '../lib/types'
 import SubmissionSummary from '../components/SubmissionSummary'
 import SurveySummary from '../components/survey/SurveySummary'
 import type { SurveyAnswers } from '../lib/survey'
+import { useAuth } from '../lib/auth'
+import { isOwner } from '../lib/roles'
 
 export default function AdminSubmissionDetail() {
   const { id } = useParams()
   const { departments } = useDirectory()
+  const navigate = useNavigate()
+  const { profile } = useAuth()
   const [sub, setSub] = useState<Submission | null>(null)
   const [author, setAuthor] = useState<Profile | null>(null)
   const [review, setReview] = useState<Pick<SubmissionReview, 'status' | 'notes'>>({ status: 'new', notes: '' })
   const [saved, setSaved] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Removes one response for good, e.g. a test answer.
+  async function removeResponse() {
+    if (!confirm('Delete this response for good? It will no longer count in any result.')) return
+    await supabase.from('submission_reviews').delete().eq('submission_id', id!)
+    const { error } = await supabase.from('submissions').delete().eq('id', id!)
+    if (error) return setError(error.message)
+    navigate('/admin/inbox', { replace: true })
+  }
 
   useEffect(() => {
     void (async () => {
@@ -54,7 +67,10 @@ export default function AdminSubmissionDetail() {
 
   return (
     <div className="page wide">
-      <Link to="/admin/inbox" className="link"><ArrowLeft size={15} /> Inbox</Link>
+      <div className="row between">
+        <Link to="/admin/inbox" className="link"><ArrowLeft size={15} /> Responses</Link>
+        {isOwner(profile?.email) && <button type="button" className="link danger" onClick={() => void removeResponse()}><Trash2 size={14} /> Delete this response</button>}
+      </div>
       <div className="detail-layout">
         <div>
           <h1>{sub?.anonymous ? '🔒 Anonymous colleague' : author?.full_name || author?.email || 'Submission'}</h1>

@@ -389,3 +389,24 @@ export function audit(subs: Submission[]): Audit {
     perDay: [...perDay].sort((a, b) => a[0].localeCompare(b[0])).map(([day, count]) => ({ day, count })),
   }
 }
+
+/**
+ * The points people mention most: answers made of several drop-down picks ("Fast response, Helpful")
+ * are split, spelling and case are ignored, and the top items come with how many people said them.
+ */
+export function topMentions(comments: { text: string }[], limit = 3) {
+  const counts = new Map<string, { text: string; count: number }>()
+  for (const c of comments) {
+    const seen = new Set<string>()
+    for (const part of (c.text ?? '').split(/[,،؛;\n]+/)) {
+      const text = part.trim()
+      const key = normalize(text)
+      if (!key || seen.has(key)) continue
+      seen.add(key)
+      const row = counts.get(key) ?? { text, count: 0 }
+      row.count++
+      counts.set(key, row)
+    }
+  }
+  return [...counts.values()].sort((a, b) => b.count - a.count || a.text.localeCompare(b.text)).slice(0, limit)
+}

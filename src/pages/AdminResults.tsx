@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase'
 import { useAdminData } from '../lib/useAdminData'
 import {
   MIN_GROUP, allIdeas, applySegment, audit, companyResults, companyScore, crossMatrix, departmentResults, highlights, isV2, nominations,
-  reasonsFor, themeCounts, type DeptResult, type Ranked, type Segment, type ThemeRow,
+  reasonsFor, themeCounts, topMentions, type DeptResult, type Ranked, type Segment, type ThemeRow,
 } from '../lib/results'
 import { PLAYBOOK } from '../lib/initiatives'
 import { MY_DEPARTMENT_EXTRA, SURVEY_DEPARTMENTS, deptByKey, type SurveyAnswers } from '../lib/survey'
@@ -87,6 +87,15 @@ function DeptCard({ d, onPlan }: { d: DeptResult; onPlan: (d: DeptResult) => voi
         {d.selfAverage !== null && <> · own team rates itself <b>{d.selfAverage}</b></>}
         {d.skips > 0 && <> · {d.skips} don’t deal with them</>}
       </p>
+      {/* The points mentioned most, counted, so the card says what matters without opening the comments. */}
+      <div className="mentions">
+        {([['good', ThumbsUp, topMentions(d.strengths)], ['bad', ThumbsDown, topMentions(d.weaknesses)]] as const).map(([tone, Icon, top]) => top.length > 0 && (
+          <p key={tone} className={`mention-row ${tone}`}>
+            <Icon size={13} />
+            {top.map((t) => <span key={t.text} className="mention" dir="auto" title={`${t.count} people`}>{t.text} <b>×{t.count}</b></span>)}
+          </p>
+        ))}
+      </div>
       <div className="row">
         <span className="pill tone-green"><ThumbsUp size={12} /> {d.strengths.length}</span>
         <span className="pill tone-rose"><ThumbsDown size={12} /> {d.weaknesses.length}</span>

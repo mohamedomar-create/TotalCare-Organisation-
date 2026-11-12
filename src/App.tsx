@@ -104,22 +104,27 @@ export default function App() {
 
   const name = profile?.full_name || session.user.email || ''
 
+  // Signed in without an e-mail = joined by invitation link: they couldn't sign back in.
+  const linkGuest = !session.user.email || Boolean((session.user as { is_anonymous?: boolean }).is_anonymous) || (profile?.email ?? '').endsWith('@invite.local')
+
   // Staff see the survey and nothing else: no menu, no other pages.
   if (role === 'staff') {
     return (
       <div className="survey-only">
         <header className="survey-only-bar">
-          <span className="brand"><span className="logo small">TC</span> TotalCare survey <span lang="ar">· استبيان</span></span>
+          <span className="brand" aria-label="TotalCare survey"><span className="logo small">TC</span> TotalCare survey <span lang="ar">· استبيان</span></span>
           <span className="survey-only-me">
             <span className="muted small">{name.endsWith('@invite.local') ? '' : name}</span>
-            <button type="button" className="icon-btn" title="Sign out · خروج" aria-label="Sign out" onClick={() => supabase.auth.signOut()}><LogOut size={17} /></button>
+            {/* People who joined by link have no e-mail to sign back in with, so they get no sign-out. */}
+            {!linkGuest && (
+              <button type="button" className="icon-btn" title="Sign out · خروج" aria-label="Sign out" onClick={() => supabase.auth.signOut()}><LogOut size={17} /></button>
+            )}
           </span>
         </header>
         <main className="content survey-only-main">
           <Routes>
             <Route path="/" element={<SurveyHome surveyOnly />} />
             <Route path="/vision/:id" element={<VisionWizard />} />
-            <Route path="/results" element={<Results />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

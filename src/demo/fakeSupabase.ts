@@ -86,12 +86,13 @@ function applyFilters(list, params) {
   let out = [...list]
   for (const [k, v] of params) {
     if (['select', 'order', 'limit', 'offset', 'columns', 'on_conflict'].includes(k)) continue
-    const m = v.match(/^(eq|neq|gte|in)\.(.*)$/)
+    const m = v.match(/^(eq|neq|gte|in|like)\.(.*)$/)
     if (!m) continue
     out = out.filter((r) => {
       const x = r[k] === null || r[k] === undefined ? 'null' : String(r[k])
       if (m[1] === 'eq') return x === m[2]
       if (m[1] === 'neq') return x !== m[2]
+      if (m[1] === 'like') return new RegExp('^' + m[2].replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*') + '$').test(x)
       if (m[1] === 'gte') return x !== '' && !isNaN(+x) && !isNaN(+m[2]) ? +x >= +m[2] : x >= m[2]
       return true
     })
@@ -102,6 +103,17 @@ function applyFilters(list, params) {
 const rpc = {
   my_submission_allowance: () => ({ allowed: 1, used: db.submissions.filter((s) => s.author_id === currentUser.id).length + db.receipts.filter((r) => r.user_id === currentUser.id).length }),
   survey_progress: () => ({ responses: db.submissions.filter((s) => s.status === 'submitted').length, people: db.profiles.length }),
+  admin_start_fresh: ({ p_confirm, p_answers, p_messages, p_invitations, p_link_accounts, p_initiatives }) => {
+    if (currentUser.id !== ADMIN.id) throw new Error('Only the super admin can delete records')
+    if (p_confirm !== 'DELETE') throw new Error('Type DELETE to confirm')
+    const out = { answers: 0, messages: 0, invitations: 0, link_accounts: 0, initiatives: 0 }
+    if (p_answers) { out.answers = db.submissions.length; db.submissions = []; db.receipts = []; db.submission_reviews = [] }
+    if (p_messages) { out.messages = db.safe_voice.length + db.feedback.length; db.safe_voice = []; db.feedback = [] }
+    if (p_link_accounts) { const g = db.profiles.filter((p) => p.email.endsWith('@invite.local')).map((p) => p.id); out.link_accounts = g.length; db.profiles = db.profiles.filter((p) => !g.includes(p.id)); db.submissions = db.submissions.filter((x) => !g.includes(x.author_id)) }
+    if (p_invitations) { out.invitations = db.invitations.length; db.invitations = [] }
+    if (p_initiatives) { out.initiatives = db.initiatives.length; db.initiatives = []; db.initiative_updates = []; db.initiative_supporters = [] }
+    return out
+  },
   survey_names: () => {
     if (db.profiles.find((p) => p.id === currentUser.id)?.active === false) return []
     const names = [...db.invitations.filter((i) => !i.revoked && i.role !== 'admin').map((i) => i.full_name), ...db.profiles.filter((p) => p.active !== false).map((p) => p.full_name)]
