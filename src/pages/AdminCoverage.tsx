@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Copy, Megaphone, MessageCircle, Users } from 'lucide-react'
+import { CheckCircle2, Copy, Megaphone, MessageCircle, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useDirectory } from '../lib/useDirectory'
 import { MY_DEPARTMENT_EXTRA, SURVEY_DEPARTMENTS } from '../lib/survey'
@@ -8,6 +8,8 @@ import type { Profile } from '../lib/types'
 
 const INVITE_AR = 'زمايلنا في TotalCare 👋 لسه فاضل وقت للاستبيان! افتح لينك الدعوة الخاص بيك اللي وصلك على واتساب (أو سجّل بإيميل الشركة). حوالي ١٠ دقايق وتقدر تبعته من غير اسمك. أحسن فكرة هيتم مكافأتها وتنفيذها.'
 const INVITE_EN = 'Dear TotalCare team, there is still time to answer the survey! Open your personal invitation link (sent to you on WhatsApp), or sign in with your company e-mail. About 10 minutes, and you can send it anonymously. The best idea will be rewarded and implemented.'
+
+interface Completion { invited: number; joined: number; sent: number; in_progress: number }
 
 export default function AdminCoverage() {
   // Counts and names only: survey admins can use this page without seeing any answers.
@@ -17,13 +19,16 @@ export default function AdminCoverage() {
   const { departments, people } = useDirectory()
   const [participants, setParticipants] = useState<Set<string>>(new Set())
   const [copied, setCopied] = useState('')
+  const [completion, setCompletion] = useState<Completion | null>(null)
 
   useEffect(() => {
     void Promise.all([
       supabase.from('profiles').select('*'),
       supabase.rpc('survey_dept_counts'),
       supabase.rpc('survey_participants'),
-    ]).then(([p, c, part]) => {
+      supabase.rpc('survey_completion'),
+    ]).then(([p, c, part, comp]) => {
+      setCompletion((comp.data ?? null) as Completion | null)
       setProfiles((p.data ?? []) as Profile[])
       setCounts(new Map(((c.data ?? []) as { dept: string; answers: number }[]).map((r) => [r.dept, Number(r.answers)])))
       setParticipants(new Set(((part.data ?? []) as { user_id: string }[]).map((r) => r.user_id)))
@@ -55,6 +60,32 @@ export default function AdminCoverage() {
     <div className="page wide">
       <h1>Coverage <span className="ar-title" lang="ar">المشاركة</span></h1>
       <p className="muted">Make sure every team and every function is heard. Departments come from each person’s answer; headcount comes from the people directory.</p>
+
+      {completion && (() => {
+        // Out of everyone invited (or, before invitations exist, everyone who joined).
+        const base = Math.max(completion.invited, completion.joined, completion.sent)
+        const pct = base ? Math.min(100, Math.round((completion.sent / base) * 100)) : 0
+        const started = base ? Math.min(100 - pct, Math.round((completion.in_progress / base) * 100)) : 0
+        return (
+          <section className="card completion-card">
+            <div className="completion-main">
+              <span className="kpi-head"><CheckCircle2 size={18} /> Completed · اكتمل</span>
+              <span className="completion-pct">{pct}%</span>
+              <span className="muted">{completion.sent} of {base} people sent the survey</span>
+            </div>
+            <div className="completion-bar" role="img" aria-label={`${pct}% sent, ${started}% in progress`}>
+              <span className="sent" style={{ width: `${pct}%` }} />
+              <span className="started" style={{ width: `${started}%` }} />
+            </div>
+            <div className="completion-legend">
+              <span><i className="sent" /> Sent · اتبعت <b>{completion.sent}</b></span>
+              <span><i className="started" /> Started, not sent · بدأ ومبعتش <b>{completion.in_progress}</b></span>
+              <span><i className="todo" /> Not started · لسه <b>{Math.max(0, base - completion.sent - completion.in_progress)}</b></span>
+              <span className="muted">Invited <b>{completion.invited}</b> · joined <b>{completion.joined}</b></span>
+            </div>
+          </section>
+        )
+      })()}
 
       <div className="two-col">
         <section className="card">

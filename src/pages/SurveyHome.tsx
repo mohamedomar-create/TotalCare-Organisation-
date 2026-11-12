@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowRight, BarChart3, CheckCircle2, ClipboardList, EyeOff, Lock, Rocket, ShieldCheck, Sparkles, Timer, Users } from 'lucide-react'
+import { ArrowRight, CheckCircle2, ClipboardList, EyeOff, Lock, Rocket, ShieldCheck, Sparkles, Timer, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { createSubmission, useAllowance, useMySubmissions } from '../lib/submissions'
@@ -31,14 +31,6 @@ export default function SurveyHome({ surveyOnly = false }: { surveyOnly?: boolea
   const { items: initiatives } = useInitiatives(session?.user.id)
   const [progress, setProgress] = useState<{ responses: number; people: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  // When the super admin shares the results, a button to them appears here (not for staff).
-  const [resultsOpen, setResultsOpen] = useState(false)
-  useEffect(() => {
-    if (surveyOnly) return // invited people see the survey and nothing else
-    supabase.rpc('results_summary').then(({ data }) => setResultsOpen(Boolean((data as { allowed?: boolean; published?: boolean } | null)?.published && (data as { allowed?: boolean }).allowed)))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   useEffect(() => {
     supabase.rpc('survey_progress').then(({ data }) => {
@@ -83,7 +75,6 @@ export default function SurveyHome({ surveyOnly = false }: { surveyOnly?: boolea
                 <ClipboardList size={18} /> {draft ? `Continue — step ${resumeStep(draft) + 1} of ${WIZARD_STEPS.length} · كمّل` : 'Start the survey · ابدأ الاستبيان'} <ArrowRight size={18} />
               </button>
             )}
-            {resultsOpen && <Link className="button secondary hero-results" to="/results"><BarChart3 size={18} /> See the results · شوف النتايج</Link>}
             {error && <p className="error">{error}</p>}
           </div>
           <div className="me-card participation">

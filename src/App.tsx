@@ -175,7 +175,7 @@ export default function App() {
           <NavLink to="/vision"><ClipboardList size={18} /> My survey</NavLink>
           <NavLink to="/speak-up"><ShieldCheck size={18} /> Speak up safely</NavLink>
           <NavLink to="/initiatives"><Rocket size={18} /> You said, we did</NavLink>
-          <NavLink to="/results"><BarChart3 size={18} /> Results for everyone</NavLink>
+          {(role === 'management' || isAdmin) && <NavLink to="/results"><BarChart3 size={18} /> Results summary</NavLink>}
 
           {FEATURES.community && (
             <>
@@ -238,7 +238,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={FEATURES.community ? <Home /> : <SurveyHome />} />
           <Route path="/vision" element={<MyVision />} />
-          <Route path="/results" element={<Results />} />
+          <Route path="/results" element={<RequireRole roles={['admin', 'management']}><Results /></RequireRole>} />
           <Route path="/vision/:id" element={<VisionWizard />} />
           <Route path="/speak-up" element={<SpeakUp />} />
           <Route path="/initiatives" element={<Initiatives />} />

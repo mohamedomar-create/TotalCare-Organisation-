@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AlertTriangle, Award, CheckCircle2, Crown, Eye, EyeOff, Lightbulb, Maximize2, MessageSquareQuote, ShieldCheck, ThumbsDown, ThumbsUp, TrendingUp, Users } from 'lucide-react'
+import { AlertTriangle, Award, CheckCircle2, Crown, EyeOff, Lightbulb, Maximize2, MessageSquareQuote, ShieldCheck, ThumbsDown, ThumbsUp, TrendingUp, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../lib/auth'
 import { ARABIC, SURVEY_DEPARTMENTS, deptByKey } from '../lib/survey'
 
 interface Count { text: string; count: number }
@@ -84,11 +83,8 @@ function Podium({ title, arTitle, items, dept }: { title: string; arTitle: strin
 }
 
 export default function Results() {
-  const { profile } = useAuth()
-  const isAdmin = profile?.role === 'admin'
   const [data, setData] = useState<Summary | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
   const pageRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
@@ -98,14 +94,6 @@ export default function Results() {
   }, [])
   useEffect(() => { void load() }, [load])
 
-  async function share(on: boolean) {
-    setBusy(true)
-    const { error } = await supabase.rpc('set_results_published', { p_on: on })
-    setBusy(false)
-    if (error) return setError(error.message)
-    await load()
-  }
-
   if (error) return <div className="page"><p className="error">{error}</p></div>
   if (!data) return <div className="page"><p className="muted">Loading the results…</p></div>
   if (!data.allowed) {
@@ -113,9 +101,9 @@ export default function Results() {
       <div className="page narrow-page center-text">
         <div className="card">
           <EyeOff size={40} className="muted" />
-          <h1>Results are coming soon</h1>
-          <p lang="ar" dir="rtl">النتايج هتتنشر هنا قريب</p>
-          <p className="muted">When the survey closes, the results will appear here for everyone — combined, with no names on any answer.</p>
+          <h1>Results are private</h1>
+          <p lang="ar" dir="rtl">النتايج للإدارة بس</p>
+          <p className="muted">Only the super admin and management can see the results.</p>
         </div>
       </div>
     )
@@ -138,15 +126,10 @@ export default function Results() {
           <h1>What we said <span className="ar-title" lang="ar">نتايج الاستبيان</span></h1>
           <p className="muted">Combined answers from {responses} {responses === 1 ? 'colleague' : 'colleagues'}. No names are shown with any answer.</p>
         </div>
-        {(isAdmin || profile?.role === 'management') && (
-          <div className="results-actions">
-            {isAdmin && (data.published
-              ? <button type="button" className="secondary" disabled={busy} onClick={() => void share(false)}><EyeOff size={15} /> Stop sharing</button>
-              : <button type="button" disabled={busy} onClick={() => void share(true)}><Eye size={15} /> Share with everyone</button>)}
-            <button type="button" className="secondary" onClick={() => void pageRef.current?.requestFullscreen?.()}><Maximize2 size={15} /> Present</button>
-            <span className={`pill ${data.published ? 'tone-green' : 'tone-amber'}`}>{data.published ? 'Everyone can see this page' : 'Only you and management can see this page'}</span>
-          </div>
-        )}
+        <div className="results-actions">
+          <button type="button" className="secondary" onClick={() => void pageRef.current?.requestFullscreen?.()}><Maximize2 size={15} /> Present</button>
+          <span className="pill tone-amber">Only you and management can see this page</span>
+        </div>
       </header>
 
       {responses === 0 ? <p className="notice">No answers yet. This page fills in as people send the survey.</p> : (<>

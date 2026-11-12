@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Eye, EyeOff, Lock, RotateCcw, Trash2, Unlock } from 'lucide-react'
+import { Lock, RotateCcw, Trash2, Unlock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 type FreshKey = 'answers' | 'messages' | 'invitations' | 'link_accounts' | 'initiatives'
@@ -87,20 +87,6 @@ export default function AdminSettings() {
         <div className="segmented">
           <button type="button" className={s.invite_only ? 'on' : ''} disabled={busy} onClick={() => void save({ invite_only: true }, 'Only invited people can answer now.')}>Invited people only</button>
           <button type="button" className={!s.invite_only ? 'on' : ''} disabled={busy} onClick={() => void save({ invite_only: false }, 'Company e-mails can join without an invitation now.')}>Also any company e-mail</button>
-        </div>
-      </section>
-
-      <section className="card setting">
-        <div className="setting-text">
-          <h2>{s.results_published ? <Eye size={18} /> : <EyeOff size={18} />} Results for everyone <span className="ar-title" lang="ar">النتايج للكل</span></h2>
-          <p className="muted small">{s.results_published
-            ? 'Everyone can open the results page (combined numbers only, no names on answers).'
-            : 'Only you and management can see the results page. Share it when the survey closes, so early results don’t sway the answers.'}{' '}
-            <Link to="/results">Open the results page</Link></p>
-        </div>
-        <div className="segmented">
-          <button type="button" className={!s.results_published ? 'on' : ''} disabled={busy} onClick={() => void save({ results_published: false }, 'Results are private again.')}>Private</button>
-          <button type="button" className={s.results_published ? 'on' : ''} disabled={busy} onClick={() => void save({ results_published: true }, 'Results are now shared with everyone.')}>Shared with everyone</button>
         </div>
       </section>
 

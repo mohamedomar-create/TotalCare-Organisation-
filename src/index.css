@@ -1332,3 +1332,15 @@ body.demo .survey-only-bar { top: 42px; }
 .choices-grid textarea { width: 100%; font-size: 14px; line-height: 1.5; box-sizing: border-box; }
 .row.end { justify-content: flex-end; margin-top: 12px; }
 @media (max-width: 720px) { .q-edit, .q-edit:has(.q-dept-emoji) { grid-template-columns: 1fr; } }
+
+/* Completion (survey admins see this, not results) */
+.completion-card { display: grid; gap: 12px; }
+.completion-main { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.completion-main .kpi-head { display: flex; align-items: center; gap: 6px; font-weight: 600; color: #475569; width: 100%; }
+.completion-pct { font-size: 52px; font-weight: 800; line-height: 1; color: #0f766e; font-variant-numeric: tabular-nums; }
+.completion-bar { display: flex; height: 16px; border-radius: 999px; overflow: hidden; background: #e2e8f0; gap: 2px; }
+.completion-bar .sent { background: #0f766e; }
+.completion-bar .started { background: #5eead4; }
+.completion-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; }
+.completion-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+.completion-legend i.sent { background: #0f766e; } .completion-legend i.started { background: #5eead4; } .completion-legend i.todo { background: #e2e8f0; }

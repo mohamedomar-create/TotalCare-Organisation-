@@ -114,6 +114,15 @@ const rpc = {
     if (p_initiatives) { out.initiatives = db.initiatives.length; db.initiatives = []; db.initiative_updates = []; db.initiative_supporters = [] }
     return out
   },
+  survey_completion: () => {
+    if (!(distributes() || currentUser.role === 'management')) return null
+    return {
+      invited: db.invitations.filter((i) => !i.revoked).length,
+      joined: db.profiles.filter((p) => p.active !== false && p.id !== ADMIN.id).length,
+      sent: db.submissions.filter((x) => x.status === 'submitted').length,
+      in_progress: db.submissions.filter((x) => x.status === 'draft').length,
+    }
+  },
   survey_names: () => {
     if (db.profiles.find((p) => p.id === currentUser.id)?.active === false) return []
     const names = [...db.invitations.filter((i) => !i.revoked && i.role !== 'admin').map((i) => i.full_name), ...db.profiles.filter((p) => p.active !== false).map((p) => p.full_name)]
@@ -128,7 +137,7 @@ const rpc = {
   results_summary: () => {
     const published = Boolean(db.app_settings[0].results_published)
     const member = db.profiles.find((p) => p.id === currentUser.id)?.active !== false
-    if (!(currentUser.role === 'admin' || currentUser.role === 'management' || (member && published))) return { published: false, allowed: false }
+    if (!(currentUser.role === 'admin' || currentUser.role === 'management') || !member) return { published, allowed: false }
     const subs = db.submissions.filter((x) => x.status === 'submitted' && x.answers?.v === 2).map((x) => x.answers)
     const norm = (t) => String(t ?? '').trim().replace(/\s+/g, ' ').toLowerCase()
     const top = (texts, n, min = 2) => {
