@@ -52,6 +52,7 @@ import AdminCommunity from './pages/AdminCommunity'
 import { levelFor, useMyPoints } from './lib/community'
 import { FEATURES } from './lib/features'
 import { ROLE_LABEL, canDistribute } from './lib/roles'
+import { applySurveyContent, type SurveyContent } from './lib/surveyContent'
 import SurveyHome from './pages/SurveyHome'
 import SpeakUp from './pages/SpeakUp'
 import Initiatives from './pages/Initiatives'
@@ -61,6 +62,7 @@ import AdminResults from './pages/AdminResults'
 import Join from './pages/Join'
 import Results from './pages/Results'
 import AdminSettings from './pages/AdminSettings'
+import AdminQuestions from './pages/AdminQuestions'
 import AdminInvitations from './pages/AdminInvitations'
 
 function RequireRole({ roles, children }: { roles: Role[]; children: React.ReactNode }) {
@@ -85,6 +87,19 @@ export default function App() {
 
   useEffect(() => setMenuOpen(false), [location.pathname])
 
+  // The survey wording the super admin may have changed: loaded once after sign-in, before the survey shows.
+  const [contentReady, setContentReady] = useState(false)
+  useEffect(() => {
+    if (!session) return
+    let gone = false
+    void supabase.from('survey_content').select('content').eq('id', 1).maybeSingle().then(({ data }) => {
+      if (gone) return
+      applySurveyContent((data as { content: SurveyContent } | null)?.content)
+      setContentReady(true)
+    }, () => setContentReady(true))
+    return () => { gone = true }
+  }, [session])
+
   if (!isConfigured) {
     return (
       <div className="centered">
@@ -95,7 +110,7 @@ export default function App() {
       </div>
     )
   }
-  if (loading) return <div className="centered muted">Loading…</div>
+  if (loading || (session && !contentReady && !location.pathname.startsWith('/join'))) return <div className="centered muted">Loading…</div>
   // Invitation links work before signing in; people who signed in without a company e-mail
   // must redeem an invitation before they can use anything.
   if (location.pathname.startsWith('/join')) return <Join />
@@ -196,6 +211,7 @@ export default function App() {
               <NavLink to="/admin/inbox"><Inbox size={18} /> Responses <Badge n={counts.submissions + counts.feedback} /></NavLink>
               <NavLink to="/admin/safe-voice"><ShieldCheck size={18} /> Speak-up inbox</NavLink>
               {FEATURES.community && <NavLink to="/admin/community"><Sparkles size={18} /> Community</NavLink>}
+              <NavLink to="/admin/questions"><ClipboardList size={18} /> Survey questions</NavLink>
               <NavLink to="/admin/directory"><BookUser size={18} /> Departments & people</NavLink>
               <NavLink to="/admin/users"><Users size={18} /> Users & roles</NavLink>
               <NavLink to="/admin/email"><Mail size={18} /> E-mail</NavLink>
@@ -247,6 +263,7 @@ export default function App() {
           <Route path="/reports/*" element={<Navigate to="/results" replace />} />
           <Route path="/admin" element={<RequireRole roles={['admin']}><AdminResults /></RequireRole>} />
           <Route path="/admin/settings" element={<RequireRole roles={['admin']}><AdminSettings /></RequireRole>} />
+          <Route path="/admin/questions" element={<RequireRole roles={['admin']}><AdminQuestions /></RequireRole>} />
           <Route path="/admin/pulse" element={<Navigate to="/admin/settings" replace />} />
           <Route path="/admin/inbox" element={<RequireRole roles={['admin']}><AdminInbox /></RequireRole>} />
           <Route path="/admin/submissions/:id" element={<RequireRole roles={['admin']}><AdminSubmissionDetail /></RequireRole>} />

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, Crown, Gift } from 'lucide-react'
 import { ARABIC, DEPT_IDEA_PICKS, DEPT_STRENGTH_PICKS, DEPT_WEAKNESS_PICKS, SURVEY_DEPARTMENTS, type DeptReview, type Nomination } from '../../lib/survey'
 import { answered, deptGaps } from '../../lib/quality'
+import { tx } from '../../lib/surveyContent'
 
 /** 1–10 score buttons, red to green. */
 export function ScoreScale({ value, onChange, disabled }: { value?: number; onChange: (v: number) => void; disabled?: boolean }) {
@@ -109,21 +110,21 @@ export function DeptReviewer({ depts, myDept, index, onIndex, onChange }: {
         </div>
 
         <>
-            <p className="field-label">1. Your opinion of {d.name} <Req /> <span className="ar-inline" lang="ar">١- رأيك في {d.ar}</span></p>
+            <p className="field-label">1. {tx('q_score', d.name).en} <Req /> <span className="ar-inline" lang="ar">١- {tx('q_score', d.ar).ar}</span></p>
             <ScoreScale value={r.score} onChange={(v) => set({ score: v })} />
             {flag && typeof r.score !== 'number' && <p className="field-missing">Choose a score from 1 to 10 · اختار تقييم</p>}
             <label>
-              <span>2. Biggest strengths <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٢- أكبر مميزات {d.ar}</span>
+              <span>2. {tx('q_strengths', d.name).en} <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٢- {tx('q_strengths', d.ar).ar}</span>
               <QuickAdd options={DEPT_STRENGTH_PICKS} current={r.strengths} onAdd={(t) => set({ strengths: t })} />
               <textarea rows={2} dir="auto" className={miss(r.strengths)} aria-invalid={Boolean(miss(r.strengths))} value={r.strengths ?? ''} onChange={(e) => set({ strengths: e.target.value })} placeholder="e.g. Always answer the phone, fast with hospitals…" />
             </label>
             <label>
-              <span>3. Biggest weaknesses <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٣- أكبر عيوب {d.ar}</span>
+              <span>3. {tx('q_weaknesses', d.name).en} <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٣- {tx('q_weaknesses', d.ar).ar}</span>
               <QuickAdd options={DEPT_WEAKNESS_PICKS} current={r.weaknesses} onAdd={(t) => set({ weaknesses: t })} />
               <textarea rows={2} dir="auto" className={miss(r.weaknesses)} aria-invalid={Boolean(miss(r.weaknesses))} value={r.weaknesses ?? ''} onChange={(e) => set({ weaknesses: e.target.value })} placeholder="e.g. Late replies, papers get lost…" />
             </label>
             <label>
-              <span>4. Ideas to improve it <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٤- أفكار لتحسين {d.ar}</span>
+              <span>4. {tx('q_ideas', d.name).en} <Req /></span> <span className="ar-line" lang="ar" dir="rtl">٤- {tx('q_ideas', d.ar).ar}</span>
               <QuickAdd options={DEPT_IDEA_PICKS} current={r.ideas} onAdd={(t) => set({ ideas: t })} />
               <textarea rows={2} dir="auto" className={miss(r.ideas)} aria-invalid={Boolean(miss(r.ideas))} value={r.ideas ?? ''} onChange={(e) => set({ ideas: e.target.value })} placeholder="One clear idea is enough" />
             </label>
@@ -165,7 +166,7 @@ export function TopThreeNames({ title, ar, value, onChange, icon }: {
 export function TopThreeDepartments({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
   return (
     <section className="card top-three">
-      <h2><Crown size={18} /> Best department <Req /> <span className="ar-title" lang="ar">أحسن إدارة</span></h2>
+      <h2><Crown size={18} /> {tx('best_department').en} <Req /> <span className="ar-title" lang="ar">{tx('best_department').ar}</span></h2>
       <p className="muted small">Tap 3 in order: first tap = 1st place. Tap again to remove. · اختار ٣ بالترتيب</p>
       <div className="chips">
         {SURVEY_DEPARTMENTS.map((d) => {
@@ -216,8 +217,8 @@ export function RewardBanner() {
     <div className="reward-banner">
       <Gift size={26} />
       <div>
-        <b>The best idea will be rewarded — and implemented if possible.</b>
-        <p lang="ar" dir="rtl">أحسن فكرة هيتم مكافأتها وتنفيذها في حالة الاستطاعة.</p>
+        <b>{tx('reward').en}</b>
+        <p lang="ar" dir="rtl">{tx('reward').ar}</p>
       </div>
     </div>
   )

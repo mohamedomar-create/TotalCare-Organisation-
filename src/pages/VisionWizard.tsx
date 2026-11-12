@@ -16,6 +16,7 @@ import {
 } from '../lib/survey'
 import { assessQuality, missingAnswers, newRewardCode, qualityRecord, type Issue } from '../lib/quality'
 import PrivacyNotice from '../components/PrivacyNotice'
+import { tx } from '../lib/surveyContent'
 import SubmissionSummary from '../components/SubmissionSummary'
 import SurveySummary from '../components/survey/SurveySummary'
 import { DeptReviewer, NumberedList, RewardBanner, TopThreeDepartments, TopThreeNames } from '../components/survey/SurveyParts'
@@ -341,9 +342,9 @@ export default function VisionWizard() {
 
         {step === 0 && (
           <>
-            <h1>Which department are you in? <span className="ar-title" lang="ar">إنت في أنهي إدارة؟</span></h1>
+            <h1>{tx('dept_title').en} <span className="ar-title" lang="ar">{tx('dept_title').ar}</span></h1>
             <PrivacyNotice />
-            <p className="lead">That’s the only thing we ask about you. It lets us leave out a team’s rating of itself. · ده السؤال الوحيد عنك.</p>
+            <p className="lead">{tx('dept_lead').en} · <span lang="ar">{tx('dept_lead').ar}</span></p>
             <div className="chips big-chips">
               {myDeptChoices.map((d) => (
                 <button key={d.key} type="button" className={`chip ${answers.my_dept === d.key ? 'on' : ''}`} onClick={() => chooseMyDept(d.key)}>
@@ -356,36 +357,36 @@ export default function VisionWizard() {
 
         {step === 1 && (
           <>
-            <h1>Rate each department <span className="ar-title" lang="ar">قيّم كل إدارة</span></h1>
-            <p className="lead">For each of the 8 departments: your score from 1 to 10, its biggest strengths, its biggest weaknesses and one idea to improve it. All questions are required. · كل الأسئلة إجبارية.</p>
+            <h1>{tx('rate_title').en} <span className="ar-title" lang="ar">{tx('rate_title').ar}</span></h1>
+            <p className="lead">{tx('rate_lead').en} · <span lang="ar">{tx('rate_lead').ar}</span></p>
             <DeptReviewer depts={answers.depts ?? {}} myDept={answers.my_dept} index={deptIndex} onIndex={setDeptIndex} onChange={setDept} />
           </>
         )}
 
         {step === 2 && (
           <>
-            <h1>The best at TotalCare <span className="ar-title" lang="ar">الأحسن في TotalCare</span></h1>
-            <p className="lead">Your top 3 in each — all three are required. Write each person’s full name. You can’t choose yourself, and each name only once.</p>
-            <TopThreeNames title="Best manager" ar="أحسن مدير" value={answers.best_managers ?? []} onChange={(v) => setAnswers({ best_managers: v })} />
+            <h1>{tx('best_title').en} <span className="ar-title" lang="ar">{tx('best_title').ar}</span></h1>
+            <p className="lead">{tx('best_lead').en} · <span lang="ar">{tx('best_lead').ar}</span></p>
+            <TopThreeNames title={tx('best_manager').en} ar={tx('best_manager').ar} value={answers.best_managers ?? []} onChange={(v) => setAnswers({ best_managers: v })} />
             <TopThreeDepartments value={answers.best_departments ?? []} onChange={(v) => setAnswers({ best_departments: v })} />
-            <TopThreeNames title="Best employee" ar="أحسن موظف" icon={<Users size={18} />} value={answers.best_employees ?? []} onChange={(v) => setAnswers({ best_employees: v })} />
+            <TopThreeNames title={tx('best_employee').en} ar={tx('best_employee').ar} icon={<Users size={18} />} value={answers.best_employees ?? []} onChange={(v) => setAnswers({ best_employees: v })} />
           </>
         )}
 
         {step === 3 && (
           <>
-            <h1>The company <span className="ar-title" lang="ar">الشركة</span></h1>
-            <p className="lead">Three of each, all required. Short answers are best. Tap a suggestion if it says what you mean — it helps us count similar answers together.</p>
-            <NumberedList title="Biggest company problems" ar="أكبر مشاكل الشركة" count={3} value={answers.company_problems ?? []} onChange={(v) => setAnswers({ company_problems: v })} suggestions={PROBLEM_SUGGESTIONS} placeholder="e.g. Approvals take too long" />
-            <NumberedList title="Best company strengths" ar="أحسن مميزات الشركة" count={3} value={answers.company_strengths ?? []} onChange={(v) => setAnswers({ company_strengths: v })} suggestions={STRENGTH_SUGGESTIONS} placeholder="e.g. Hospitals trust us" />
+            <h1>{tx('company_title').en} <span className="ar-title" lang="ar">{tx('company_title').ar}</span></h1>
+            <p className="lead">{tx('company_lead').en} · <span lang="ar">{tx('company_lead').ar}</span></p>
+            <NumberedList title={tx('company_problems').en} ar={tx('company_problems').ar} count={3} value={answers.company_problems ?? []} onChange={(v) => setAnswers({ company_problems: v })} suggestions={PROBLEM_SUGGESTIONS} placeholder="e.g. Approvals take too long" />
+            <NumberedList title={tx('company_strengths').en} ar={tx('company_strengths').ar} count={3} value={answers.company_strengths ?? []} onChange={(v) => setAnswers({ company_strengths: v })} suggestions={STRENGTH_SUGGESTIONS} placeholder="e.g. Hospitals trust us" />
           </>
         )}
 
         {step === 4 && (
           <>
-            <h1>Ideas to develop TotalCare <span className="ar-title" lang="ar">أفكار ممكن تطوّر الشركة</span></h1>
+            <h1>{tx('ideas_title').en} <span className="ar-title" lang="ar">{tx('ideas_title').ar}</span></h1>
             <RewardBanner />
-            <p className="lead">Write 5 ideas — all five are required. · اكتب ٥ أفكار.</p>
+            <p className="lead">{tx('ideas_lead').en} · <span lang="ar">{tx('ideas_lead').ar}</span></p>
             <NumberedList title="Your ideas" ar="أفكارك" count={5} value={answers.company_ideas ?? []} onChange={(v) => setAnswers({ company_ideas: v })} placeholder="e.g. One approval matrix: max 2 signatures for any order" />
           </>
         )}
@@ -421,7 +422,7 @@ export default function VisionWizard() {
             {!locked && (
               <div className={`anon-choice ${needChoice && anonymous === null ? 'needs-choice' : ''}`}>
                 {needChoice && anonymous === null && <p className="choice-alert" role="alert">Last step: choose how to send your answers, then press Send. · آخر خطوة: اختار هتبعت باسمك ولا من غير اسم، وبعدين دوس ابعت.</p>}
-                <p className="field-label">How do you want to send it? <span className="ar-inline" lang="ar">عايز تبعتها إزاي؟</span></p>
+                <p className="field-label">{tx('send_question').en} <span className="ar-inline" lang="ar">{tx('send_question').ar}</span></p>
                 <button type="button" className={`card choice ${anonymous === false ? 'on' : ''}`} onClick={() => { setAnonymous(false); setNeedChoice(false) }}>
                   <UserRound size={22} />
                   <span><b>With my name</b> · باسمي<br /><span className="muted small">Only the project admin sees your name and can follow up — and reward your idea directly. Management sees summaries without names.</span></span>
